@@ -1582,6 +1582,26 @@ def build_titles_knowledge_base(fpath):
     ## return the raw knowledge base:
     return (kb, standardised_titles, seek_phrases)
 
+
+
+def get_affiliation_canonical_value(proposed_affil):
+    """Given a proposed affiliation, look for a canonical form in the
+    affils knowledge base
+
+    @param proposed_affil the possible affiliation name to be looked for
+    @return canonical form returns none if no key matches
+
+    """
+
+    try:
+        from invenio.bibformat_dblayer import get_kb_mapping_value
+    except ImportError:
+        def get_kb_mapping_value(kb_name, key):
+            """ if we have no kb, just accept affiliations as they are"""
+            return None   #default
+
+
+
 def standardize_and_markup_numeration_of_citations_in_line(line):
     """Given a reference line, attepmt to locate instances of citation
        'numeration' in the line.
@@ -3990,6 +4010,88 @@ def perform_regex_search_upon_line_with_pattern_list(line, patterns):
     return m
 
 
+def find_author_section(docbody, author_marker = None, first_author = None):
+    """Search in document body for its author section.
+       Looks top down for things that look like an author list.  This will
+       work generally poorly unless one is using the LaTeX in some way, or
+       if one knows the first author. Both of these methods are tried
+       first, falling back to a default search for the first line
+       matching
+          [A-Z]\w+, [A-Z]\.?\s?[A-Z]?\.?\s?\d*
+          (i.e. a word starting with caps, followed by comma, space, one
+          or two initials with possible periods and then possibly a number.
+    
+       @param docbody: (list) of strings - the full document body.
+       @param author_marker: (string) optional (regexp) marker embedded by latex
+       for beginning and end of author section  
+       @param first_author: (string) optional (regexp) first author to help find
+       beginning of section
+       @return: (dictionary) :
+          { 'start_line' : (integer) - index in docbody of 1st author line,
+            'end_line' : (integer) - index of last author line
+          }
+                 Much of this information is used by later functions to rebuild
+                 a reference section.
+         -- OR --
+                (None) - when the reference section could not be found.
+    """
+    auth_start_line = None
+    auth_end_line = None
+    #A pattern to match author names
+    # demands name has a comma
+    # allows space or hyphen in family name
+    # allows only initials (capital letters) but allows many (3 or more if
+    #        no . or spaces used...)
+    # allows a trailing number
+    # Aubert, F. I. 3
+    author_pattern = re.compile('([A-Z]\w+\s?\w+)\s?([A-Z\.\s]{1,9})\.?\s?(\d*)')
+    # F. I. Aubert, 3
+    author_pattern = re.compile('([A-Z])\.\s?([A-Z]?)\.?\s?([A-Z]\w+\s?\w*)\,?\s?(\d*)')
+    start_pattern = author_pattern
+    end_pattern = author_pattern
+
+#    if author_marker is not None:
+#        start_pattern = re.compile(author_marker+'(.*)')
+#        end_pattern = re.compile('(.*)'+author_marker)
+#    if first_author is not None:
+#        start_pattern = re.compile(first_author)
+#        end_pattern = None;
+        
+
+    for position in range(len(docbody)):
+        line = docbody[position]
+        if auth_start_line is None:
+            if cli_opts['verbosity'] > 2:
+                print "examining " + line.encode("utf8")
+                print "re -> " + start_pattern.pattern
+            if start_pattern.search(line):
+                auth_start_line = position
+        elif auth_end_line is None and end_pattern.search(line):            
+            # this could be the last author or one of many
+            auth_end_line = position
+        elif auth_end_line is not None and end_pattern.search(line):
+            break
+            # leave when we have found a possible and, and the ending
+            # pattern no longer matches this will fail if there are
+            # affiliations interspersed, or othe corruptions of the list
+
+                          
+    if auth_start_line is not None:
+        ## return dictionary containing details of author section:
+        auth_sect_details = {
+            'start_line' : auth_start_line,
+            'end_line'   : auth_end_line,
+            'marker_pattern' : author_pattern,
+            'title_string' : None,
+            'marker' : None,
+            'title_marker_same_line' : None,
+                            }
+    else:
+        auth_sect_details = None
+    return auth_sect_details
+
+
+
 def find_reference_section(docbody):
     """Search in document body for its reference section. More precisely, find
        the first line of the reference section. Effectively, the function starts
@@ -4695,6 +4797,24 @@ def wash_and_repair_reference_line(line):
     line = re_multiple_space.sub(u' ', line)
     return line
 
+
+def rebuild_author_lines(author_lines, author_pattern):
+    """Given the lines that we think make up the author section reset
+    everything so that each author is on one line
+    """
+    def found_author(matchobj):
+        """ given an author in the match obj, pushes it on the stack of lines
+        """
+        authors.append(matchobj.group(0))
+        if cli_opts['verbosity'] > 1:
+            print "Found author -> "+ matchobj.group(0)+ "\n"
+        return ' '
+    authors = []
+    author_string = ' '.join(author_lines)
+    author_pattern.sub(found_author, author_string)
+    return authors
+        
+
 def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
     """Given a reference section, rebuild the reference lines. After translation
        from PDF to text, reference lines are often broken. This is because
@@ -4787,6 +4907,63 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
                                                p_ref_line_marker)
     return rebuilt_references
 
+def get_lines(docbody,
+              start_line,
+              end_line,
+              title,
+              marker_ptn,
+              title_marker_same_line,
+              section = 'references'):
+    """from a given section of a document extract the relevant lines, not
+              including the various markers.
+              @param start_line  index of docbody on which sect starts
+              @param end_line   index of docbody on which sect ends
+              @param title  a string that signifies the beginning
+              @param marker_ptn  pattern that ids start of a line
+              @param title_marker_same_line integer tells whether title and
+              marker are on same line
+              @param section[="references"] string denoting type of section 
+              @return: (list) of strings. Each string is a reference line, extracted
+        from the document. """
+
+    start_idx = start_line
+    if title_marker_same_line:
+        ## Title on same line as 1st ref- take title out!
+        title_start = docbody[start_idx].find(title)
+        if title_start != -1:
+            docbody[start_idx] = docbody[start_idx][title_start + \
+                                                    len(title):]
+    elif title is not None:
+        ## Pass title line 
+        start_idx += 1
+
+
+
+    ## now rebuild reference lines:
+    if type(end_line) is int:
+        if section is 'references':
+            lines = \
+                  rebuild_reference_lines(docbody[start_idx:end_line+1], \
+                                   marker_ptn)
+        elif section is 'authors':
+            print "ready to rebuild"
+            lines = \
+                rebuild_author_lines(docbody[start_idx:end_line+1], \
+                                  marker_ptn)
+            #lines = docbody[start_idx:end_line+1]
+    else:
+        if section is 'references':
+            lines = rebuild_reference_lines(docbody[start_idx:], \
+                                            marker_ptn)
+        elif section is 'authors':
+            lines = \
+                rebuild_author_lines(docbody[start_idx:], \
+                                  marker_ptn)
+            #lines = docbody[start_idx:]
+    return lines
+                        
+
+
 def get_reference_lines(docbody,
                         ref_sect_start_line,
                         ref_sect_end_line,
@@ -4817,6 +4994,8 @@ def get_reference_lines(docbody,
         from the document.
     """
     start_idx = ref_sect_start_line
+
+    
     if title_marker_same_line:
         ## Title on same line as 1st ref- take title out!
         title_start = docbody[start_idx].find(ref_sect_title)
@@ -4841,66 +5020,103 @@ def get_reference_lines(docbody,
 ## ----> Glue - logic for finding and extracting reference section:
 
 def extract_references_from_fulltext(fulltext):
-    """Locate and extract the reference section from a fulltext document.
+    """Locate and extract references from a fulltext document.
        Return the extracted reference section as a list of strings, whereby each
        string in the list is considered to be a single reference line.
         E.g. a string could be something like:
         '[19] Wilson, A. Unpublished (1986).
+        wrapper for more general extract_section_from_fulltext()
+        
        @param fulltext: (list) of strings, whereby each string is a line of the
         document.
        @return: (list) of strings, where each string is an extracted reference
         line.
     """
+    return extract_section_from_fulltext(fulltext, 'references')
+
+def extract_section_from_fulltext(fulltext, section):
+    """Locate and extract a relevant named section from a fulltext document.
+       Return the extracted section as a list of strings, whereby each
+       string in the list is considered to be a single line (reference,
+       author, abstract etc).
+       E.g. a string could be something like:
+        '[19] Wilson, A. Unpublished (1986).
+       @param fulltext: (list) of strings, whereby each string is a line of the
+       document.
+       @param section: 'references', 'authors', or FIXME 'abstract'
+       @return: (list) of strings, where each string is an extracted line.
+    """
     ## Try to remove pagebreaks, headers, footers
     fulltext = remove_page_boundary_lines(fulltext)
     status = 0
+    sect_start = {'start_line' : None,
+                  'end_line'   : None,
+                  'title_string': None,
+                  'marker_pattern': None,
+                  'marker' : None,
+                  }
+                  
+    sect_end = None
     #How ref section found flag
     how_found_start = 0
-    ## Find start of refs section:
-    ref_sect_start = find_reference_section(fulltext)
-    if ref_sect_start is not None: how_found_start = 1
-    if ref_sect_start is None:
-        ## No references found - try with no title option
-        ref_sect_start = find_reference_section_no_title_via_brackets(fulltext)
-        if ref_sect_start is not None: how_found_start = 2
-        ## Try weaker set of patterns if needed
-        if ref_sect_start is None:
-            ## No references found - try with no title option (with weaker patterns..)
-            ref_sect_start = find_reference_section_no_title_via_dots(fulltext)
-            if ref_sect_start is not None: how_found_start = 3
-            if ref_sect_start is None:
-                ## No references found - try with no title option (with even weaker patterns..)
-                ref_sect_start = find_reference_section_no_title_via_numbers(fulltext)
-                if ref_sect_start is not None: how_found_start = 4
-    if ref_sect_start is None:
+    if section == 'references':
+        ## Find start of refs section:
+        sect_start = find_reference_section(fulltext)
+        if sect_start is not None: how_found_start = 1
+        if sect_start is None:
+            ## No references found - try with no title option
+            sect_start = find_reference_section_no_title_via_brackets(fulltext)
+            if sect_start is not None: how_found_start = 2
+            ## Try weaker set of patterns if needed
+            if sect_start is None:
+                ## No references found - try with no title option (with weaker patterns..)
+                sect_start = find_reference_section_no_title_via_dots(fulltext)
+                if sect_start is not None: how_found_start = 3
+                if sect_start is None:
+                    ## No references found - try with no title option (with even weaker patterns..)
+                    sect_start = find_reference_section_no_title_via_numbers(fulltext)
+                    if sect_start is not None: how_found_start = 4
+    elif section == 'authors':            
+
+        sect_start = find_author_section(fulltext, first_author = cli_opts['first_author'])
+  
+
+    if sect_start is None:
         ## No References
-        refs = []
+        lines = []
         status = 4
         if cli_opts['verbosity'] >= 1:
-            sys.stdout.write("-----extract_references_from_fulltext: " \
-                             "ref_sect_start is None\n")
+            sys.stdout.write("-----extract_section_from_fulltext: " \
+                             "No section found\n")
     else:
-        ref_sect_end = \
-           find_end_of_reference_section(fulltext, \
-                                         ref_sect_start["start_line"], \
-                                         ref_sect_start["marker"], \
-                                         ref_sect_start["marker_pattern"])
-        if ref_sect_end is None:
+        sect_end = None
+        if sect_start.has_key("end_line"):
+            sect_end = sect_start["end_line"]
+        if sect_end is None:
+            sect_end = \
+                     find_end_of_reference_section(fulltext, \
+                                                   sect_start["start_line"], \
+                                                   sect_start["marker"], \
+                                                   sect_start["marker_pattern"])
+
+        if sect_end is None:
             ## No End to refs? Not safe to extract
-            refs = []
+            lines = []
             status = 5
             if cli_opts['verbosity'] >= 1:
-                sys.stdout.write("-----extract_references_from_fulltext: " \
-                                 "no end to refs!\n")
+                sys.stdout.write("-----extract_section_from_fulltext: " \
+                                 "no end to section!\n")
         else:
             ## Extract
-            refs = get_reference_lines(fulltext, \
-                                       ref_sect_start["start_line"], \
-                                       ref_sect_end, \
-                                       ref_sect_start["title_string"], \
-                                       ref_sect_start["marker_pattern"], \
-                                       ref_sect_start["title_marker_same_line"])
-    return (refs, status, how_found_start)
+            lines = get_lines(fulltext, \
+                              sect_start["start_line"], \
+                              sect_end, \
+                              sect_start["title_string"], \
+                              sect_start["marker_pattern"], \
+                              sect_start["title_marker_same_line"],
+                              section,
+                              )
+    return (lines, status, how_found_start)
 
 
 ## Tasks related to conversion of full-text to plain-text:
@@ -4972,6 +5188,7 @@ def convert_PDF_to_plaintext(fpath):
             count += 2
     ## close pipe to pdftotext:
     pipe_pdftotext.close()
+
     if cli_opts['verbosity'] >= 1:
         sys.stdout.write("-----convert_PDF_to_plaintext found: " \
                          "%s lines of text\n" % str(count))
@@ -5069,7 +5286,11 @@ def usage(wmsg="", err_code=0):
    -v, --verbose  verbosity level (0=mute, 1=default info msg,
                   2=display reference section extraction analysis,
                   3=display reference line citation processing analysis,
-                  9=max information)
+		  9=max information)
+   -a, --authors  extract authors, not references.  most other options
+                  work as expected
+   --first_author use the following regexp as the first author, helps for
+                  author extraction, ignored otherwise
    -r, --output-raw-refs
                   output raw references, as extracted from the document.
                   No MARC XML mark-up - just each extracted line, prefixed
@@ -5079,9 +5300,9 @@ def usage(wmsg="", err_code=0):
    -d, --dictfile
                   write statistics about all matched title abbreviations
                   (i.e. LHS terms in the titles knowledge base) to a file.
-   -z, --raw-references
-                  treat the input file as pure references. i.e. skip the stage
-                  of trying to locate the reference section within a document
+   -z, --raw-references, --raw-authors
+                  treat the input file as pure references or authors. i.e.
+                  skip the stage of trying to locate the section within a document
                   and instead move to the stage of recognition and
                   standardisation of citations within lines.
 
@@ -5099,22 +5320,27 @@ def get_cli_options():
     """
     global cli_opts
     ## dictionary of important flags and values relating to cli call of program:
-    cli_opts = { 'treat_as_reference_section' : 0,
+    cli_opts = { 'treat_as_raw_section'       : 0,
                  'output_raw'                 : 0,
                  'verbosity'                  : 0,
                  'xmlfile'                    : 0,
                  'dictfile'                   : 0,
+                 'authors'                    : 0,
+                 'first_author'               : 0,
                }
 
     try:
-        myoptions, myargs = getopt.getopt(sys.argv[1:], "hVv:zrx:d:", \
+        myoptions, myargs = getopt.getopt(sys.argv[1:], "ahVv:zrx:d:", \
                                           ["help",
                                            "version",
                                            "verbose=",
                                            "raw-references",
+                                           "raw-authors",
+                                           "authors",
                                            "output-raw-refs",
                                            "xmlfile=",
-                                           "dictfile="])
+                                           "dictfile=",
+                                           "first_author",])
     except getopt.GetoptError, err:
         ## Invalid option provided - usage message
         usage(wmsg="Error: %(msg)s." % { 'msg' : str(err) })
@@ -5137,9 +5363,9 @@ def get_cli_options():
                 cli_opts['verbosity'] = 0
             else:
                 cli_opts['verbosity'] = int(o[1])
-        elif o[0] in ("-z", "--raw-citations"):
-            ## treat input as pure reference lines:
-            cli_opts['treat_as_reference_section'] = 1
+        elif o[0] in ("-z", "--raw-references", "--raw-authors"):
+            ## treat input as pure lines relevant to extraction:
+            cli_opts['treat_as_raw_section'] = 1
         elif o[0] in ("-x", "--xmlfile"):
             ## Write out MARC XML references to the specified file
             cli_opts['xmlfile'] = o[1]
@@ -5147,9 +5373,14 @@ def get_cli_options():
             ## Write out the statistics of all titles matched during the
             ## extraction job to the specified file
             cli_opts['dictfile'] = o[1]
-    if len(myargs) == 0:
-        ## no arguments: error message
-        usage(wmsg="Error: no full-text.")
+        elif o[0] in ("-a", "--authors"):
+            cli_opts['authors'] = 1;
+        elif o[0] in ("--first_author"):
+            cli_opts['first_author'] = 1;
+        if len(myargs) == 0:
+            ## no arguments: error message
+            usage(wmsg="Error: no full-text.")
+        
 
     return (cli_opts, myargs)
 
@@ -5274,7 +5505,8 @@ def main():
     (preprint_reportnum_sre, \
      standardised_preprint_reportnum_categs) = \
                build_reportnum_knowledge_base(CFG_REFEXTRACT_KB_REPORT_NUMBERS)
-
+     
+    
     done_coltags = 0 ## flag to signal that the XML collection
                      ## tags have been output
 
@@ -5320,28 +5552,37 @@ def main():
         if len(docbody) > 0:
             ## the document body is not empty:
             ## 2. If necessary, locate the reference section:
-            if cli_opts['treat_as_reference_section']:
-                ## don't search for citations in the document body:
-                ## treat it as a reference section:
-                reflines = docbody
+            if cli_opts['treat_as_raw_section']:
+                ## don't search for sections in the document body:
+                ## treat entire input as relevant section:
+                extract_lines = docbody
+
             else:
-                ## launch search for the reference section in the document body:
-                (reflines, extract_error, how_found_start) = \
-                           extract_references_from_fulltext(docbody)
-                if len(reflines) == 0 and extract_error == 0:
+    
+                ## launch search for the relevant section in the document body:
+                if cli_opts['authors'] == 1:
+                    section = 'authors'
+                else:
+                    section = 'references'
+
+                (extract_lines, extract_error, how_found_start) = \
+                                extract_section_from_fulltext(docbody, section)
+                if len(extract_lines) == 0 and extract_error == 0:
                     extract_error = 6
                 if cli_opts['verbosity'] >= 1:
-                    sys.stdout.write("-----extract_references_from_fulltext " \
-                                     "gave len(reflines): %s overall error: " \
+                    sys.stdout.write("-----extract_section_from_fulltext " \
+                                     "gave len(extract_lines): %s overall error: " \
                                      "%s\n" \
-                                     % (str(len(reflines)), str(extract_error)))
+                                     % (str(len(extract_lines)), str(extract_error)))
+                    if cli_opts['verbosity'] >= 2:
+                        sys.stdout.write('lines extracted:\n%s\n\n' % extract_lines)
+                    
 
             ## 3. Standardise the reference lines:
-#            reflines = test_get_reference_lines()
             (processed_references, count_misc, \
              count_title, count_reportnum, \
              count_url, record_titles_count) = \
-              create_marc_xml_reference_section(reflines,
+              create_marc_xml_reference_section(extract_lines,
                                                 preprint_repnum_search_kb=\
                                                   preprint_reportnum_sre,
                                                 preprint_repnum_standardised_categs=\
@@ -5362,7 +5603,7 @@ def main():
 
         else:
             ## document body is empty, therefore the reference section is empty:
-            reflines = []
+            extract_lines = []
             processed_references = []
 
         ## 4. Display the extracted references, status codes, etc:
@@ -5371,7 +5612,7 @@ def main():
             raw_file = str(recid) + '.rawrefs'
             try:
                 rawfilehdl = open(raw_file, 'w')
-                write_raw_references_to_stream(recid, reflines, rawfilehdl)
+                write_raw_references_to_stream(recid, extract_lines, rawfilehdl)
                 rawfilehdl.close()
             except:
                 raise IOError("Cannot open raw ref file: %s to write" \
@@ -5450,61 +5691,7 @@ def main():
             sys.exit(1)
 
 
-def test_get_reference_lines():
-    """Returns some test reference lines.
-       @return: (list) of strings - the test reference lines. Each
-        string in the list is a reference line that should be processed.
-    """
-    reflines = ["""[1] <a href="http://cdsweb.cern.ch/">CERN Document Server</a> J. Maldacena, Adv. Theor. Math. Phys. 2 (1998) 231; hep-th/9711200. http://cdsweb.cern.ch/ then http://www.itp.ucsb.edu/online/susyc99/discussion/. ; L. Susskind, J. Math. Phys. 36 (1995) 6377; hep-th/9409089. hello world a<a href="http://uk.yahoo.com/">Yahoo!</a>. Fin.""",
-                """[1] J. Maldacena, Adv. Theor. Math. Phys. 2 (1998) 231; hep-th/9711200. http://cdsweb.cern.ch/""",
-                """[2] S. Gubser, I. Klebanov and A. Polyakov, Phys. Lett. B428 (1998) 105; hep-th/9802109. http://cdsweb.cern.ch/search.py?AGE=hello-world&ln=en""",
-                """[3] E. Witten, Adv. Theor. Math. Phys. 2 (1998) 253; hep-th/9802150.""",
-                """[4] O. Aharony, S. Gubser, J. Maldacena, H. Ooguri and Y. Oz, hep-th/9905111.""",
-                """[5] L. Susskind, J. Math. Phys. 36 (1995) 6377; hep-th/9409089.""",
-                """[6] L. Susskind and E. Witten, hep-th/9805114.""",
-                """[7] W. Fischler and L. Susskind, hep-th/9806039; N. Kaloper and A. Linde, Phys. Rev. D60 (1999) 105509, hep-th/9904120.""",
-                """[8] R. Bousso, JHEP 9906:028 (1999); hep-th/9906022.""",
-                """[9] R. Penrose and W. Rindler, Spinors and Spacetime, volume 2, chapter 9 (Cambridge University Press, Cambridge, 1986).""",
-                """[10] R. Britto-Pacumio, A. Strominger and A. Volovich, JHEP 9911:013 (1999); hep-th/9905211. blah hep-th/9905211 blah hep-ph/9711200""",
-                """[11] V. Balasubramanian and P. Kraus, Commun. Math. Phys. 208 (1999) 413; hep-th/9902121.""",
-                """[12] V. Balasubramanian and P. Kraus, Phys. Rev. Lett. 83 (1999) 3605; hep-th/9903190.""",
-                """[13] P. Kraus, F. Larsen and R. Siebelink, hep-th/9906127.""",
-                """[14] L. Randall and R. Sundrum, Phys. Rev. Lett. 83 (1999) 4690; hep-th/9906064. this is a test RN of a different type: CERN-LHC-Project-Report-2006-003. more text.""",
-                """[15] S. Gubser, hep-th/9912001.""",
-                """[16] H. Verlinde, hep-th/9906182; H. Verlinde, hep-th/9912018; J. de Boer, E. Verlinde and H. Verlinde, hep-th/9912012.""",
-                """[17] E. Witten, remarks at ITP Santa Barbara conference, "New dimensions in field theory and string theory": http://www.itp.ucsb.edu/online/susyc99/discussion/.""",
-                """[18] D. Page and C. Pope, Commun. Math. Phys. 127 (1990) 529.""",
-                """[19] M. Duff, B. Nilsson and C. Pope, Physics Reports 130 (1986), chapter 9.""",
-                """[20] D. Page, Phys. Lett. B79 (1978) 235.""",
-                """[21] M. Cassidy and S. Hawking, Phys. Rev. D57 (1998) 2372, hep-th/9709066; S. Hawking, Phys. Rev. D52 (1995) 5681.""",
-                """[22] K. Skenderis and S. Solodukhin, hep-th/9910023.""",
-                """[23] M. Henningson and K. Skenderis, JHEP 9807:023 (1998), hep-th/9806087.""",
-                """[24] C. Fefferman and C. Graham, "Conformal Invariants", in Elie Cartan et les Mathematiques d'aujourd'hui (Asterisque, 1985) 95.""",
-                """[25] C. Graham and J. Lee, Adv. Math. 87 (1991) 186. <a href="http://cdsweb.cern.ch/">CERN Document Server</a>""",
-                """[26] E. Witten and S.-T. Yau, hep-th/9910245.""",
-                """[27] R. Emparan, JHEP 9906:036 (1999); hep-th/9906040.""",
-                """[28] A. Chamblin, R. Emparan, C. Johnson and R. Myers, Phys. Rev. D59 (1999) 64010, hep-th/9808177; S. Hawking, C. Hunter and D. Page, Phys. Rev. D59 (1999) 44033, hep-th/9809035.""",
-                """[29] S. Sethi and L. Susskind, Phys. Lett. B400 (1997) 265, hep-th/9702101; T. Banks and N. Seiberg, Nucl. Phys. B497 (1997) 41, hep-th/9702187.""",
-                """[30] R. Emparan, C. Johnson and R. Myers, Phys. Rev. D60 (1999) 104001; hep-th/9903238.""",
-                """[31] S. Hawking, C. Hunter and M. Taylor-Robinson, Phys. Rev. D59 (1999) 064005; hep-th/9811056.""",
-                """[32] J. Dowker, Class. Quant. Grav. 16 (1999) 1937; hep-th/9812202.""",
-                """[33] J. Brown and J. York, Phys. Rev. D47 (1993) 1407.""",
-                """[34] D. Freedman, S. Mathur, A. Matsuis and L. Rastelli, Nucl. Phys. B546 (1999) 96; hep-th/9804058. More text, followed by an IBID A 546 (1999) 96""",
-                """[35] D. Freedman, S. Mathur, A. Matsuis and L. Rastelli, Nucl. Phys. B546 (1999) 96; hep-th/9804058. More text, followed by an IBID A""",
-                """[36] whatever http://cdsware.cern.ch/""",
-                """[37] some misc  lkjslkdjlksjflksj [hep-th/9804058] lkjlkjlkjlkj [hep-th/0001567], hep-th/1212321, some more misc, Nucl. Phys. B546 (1999) 96""",
-                """[38] R. Emparan, C. Johnson and R.... Myers, Phys. Rev. D60 (1999) 104001; this is :: .... misc! hep-th/9903238. and some ...,.,.,.,::: more hep-ph/9912000""",
-                """[10] A. Ceresole, G. Dall Agata and R. D Auria, JHEP 11(1999) 009, [hep-th/9907216].""",
-                """[12] D.P. Jatkar and S. Randjbar-Daemi, Phys. Lett. B460, 281 (1999) [hep-th/9904187].""",
-                """[14] G. DallAgata, Phys. Lett. B460, (1999) 79, [hep-th/9904198].""",
-                """[13] S.M. Donaldson, Instantons and Geometric Invariant Theory, Comm. Math. Phys., 93, (1984), 453-460.""",
-                """[16] Becchi C., Blasi A., Bonneau G., Collina R., Delduc F., Commun. Math. Phys., 1988, 120, 121.""",
-                """[26]: N. Nekrasov, A. Schwarz, Instantons on noncommutative R4 and (2, 0) superconformal six-dimensional theory, Comm. Math. Phys., 198, (1998), 689-703.""",
-                """[2] H. J. Bhabha, Rev. Mod. Phys. 17, 200(1945); ibid, 21, 451(1949); S. Weinberg, Phys. Rev. 133, B1318(1964); ibid, 134, 882(1964); D. L. Pursey, Ann. Phys(N. Y)32, 157(1965); W. K. Tung, Phys, Rev. Lett. 16, 763(1966); Phys. Rev. 156, 1385(1967); W. J. Hurley, Phys. Rev. Lett. 29, 1475(1972).""",
-                """[21] E. Schrodinger, Sitzungsber. Preuss. Akad. Wiss. Phys. Math. Kl. 24, 418(1930); ibid, 3, 1(1931); K. Huang, Am. J. Phys. 20, 479(1952); H. Jehle, Phys, Rev. D3, 306(1971); G. A. Perkins, Found. Phys. 6, 237(1976); J. A. Lock, Am. J. Phys. 47, 797(1979); A. O. Barut et al, Phys. Rev. D23, 2454(1981); ibid, D24, 3333(1981); ibid, D31, 1386(1985); Phys. Rev. Lett. 52, 2009(1984).""",
-                """[1] P. A. M. Dirac, Proc. R. Soc. London, Ser. A155, 447(1936); ibid, D24, 3333(1981).""",
-               ]
-    return reflines
+
 
 if __name__ == '__main__':
     main()
