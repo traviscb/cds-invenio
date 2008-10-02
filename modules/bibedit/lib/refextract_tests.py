@@ -194,7 +194,7 @@ class RefExtractReferenceParsingTest(unittest.TestCase):
 
 TEST_SUITE = make_test_suite(RefExtractPDFTest,
                              RefExtractExtractSectionTest,
-                             RefExtractReferenceParsingTest,
+#                             RefExtractReferenceParsingTest,
                              )
 
 if __name__ == '__main__':
