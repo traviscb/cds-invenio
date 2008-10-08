@@ -50,12 +50,16 @@ def setup_files(self):
 
 def set_test_cli_opts():
     refextract.cli_opts = { 'treat_as_raw_section'       : 0,
-                 'output_raw'                 : 0,
-                 'verbosity'                  : 0,
-                 'xmlfile'                    : 0,
-                 'dictfile'                   : 0,
-                 'authors'                    : 0,
+                            'output_raw'                 : 0,
+                            'verbosity'                  : 1,
+                            'xmlfile'                    : 0,
+                            'dictfile'                   : 0,
+                            'authors'                    : 0,
+                            'first_author'               : "",
     }
+
+
+
 
 class RefExtractPDFTest(unittest.TestCase):
     """ refextract test pdf to text extraction"""
@@ -95,15 +99,16 @@ class RefExtractExtractSectionTest(unittest.TestCase):
         """ find a reference section """
         (references, extract_error, how_start) = refextract.extract_section_from_fulltext(self.textbody,'references')
         self.assertEqual(extract_error, 0)
-        for line in references:
-            print "found -> %s\n" % line
+#        for line in references:
+#           print "found -> %s\n" % line
         self.assertEqual(len(references), 17)
 
     def test_author_finding(self):
         """ find author section """
-        authors = refextract.extract_section_from_fulltext(self.textbody,'authors')
-        print authors
-        self.assertEqual(len(authors), 96)
+        (authors, extract_error, how_start) = refextract.extract_section_from_fulltext(self.textbody,'authors')
+        for line in authors:
+            print "found -> %s\n" % line.encode("utf8")
+        self.assertEqual(len(authors), 2)
 
 
 class RefExtractReferenceParsingTest(unittest.TestCase):

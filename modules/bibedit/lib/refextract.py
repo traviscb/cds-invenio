@@ -4030,7 +4030,7 @@ def find_author_section(docbody, author_marker = None, first_author = None):
        beginning of section
        @return: (dictionary) :
           { 'start_line' : (integer) - index in docbody of 1st author line,
-            'end_line' : (integer) - index o last author line
+            'end_line' : (integer) - index of last author line
           }
                  Much of this information is used by later functions to rebuild
                  a reference section.
@@ -4045,39 +4045,48 @@ def find_author_section(docbody, author_marker = None, first_author = None):
     # allows only initials (capital letters) but allows many (3 or more if
     #        no . or spaces used...)
     # allows a trailing number
-    author_pattern = re.compile('([A-Z]\w+\s?\w+),\s?([A-Z\.\s]{1,9})\.?\s?(\d*)')
-
+    # Aubert, F. I. 3
+    author_pattern = re.compile('([A-Z]\w+\s?\w+)\s?([A-Z\.\s]{1,9})\.?\s?(\d*)')
+    # F. I. Aubert, 3
+    author_pattern = re.compile('([A-Z])\.\s?([A-Z]?)\.?\s?([A-Z]\w+\s?\w*)\,?\s?(\d*)')
     start_pattern = author_pattern
     end_pattern = author_pattern
 
-    if author_marker is not None:
-        start_pattern = re.compile('author_marker(.*)')
-        end_pattern = re.compile('(.*)author_marker')
-    elif first_author is not None:
-        start_pattern = re.compile('first_author')
-        end_pattern = None;
+#    if author_marker is not None:
+#        start_pattern = re.compile(author_marker+'(.*)')
+#        end_pattern = re.compile('(.*)'+author_marker)
+#    if first_author is not None:
+#        start_pattern = re.compile(first_author)
+#        end_pattern = None;
         
-    
+
     for position in range(len(docbody)):
         line = docbody[position]
         if auth_start_line is None:
+            if cli_opts['verbosity'] > 2:
+                print "examining " + line.encode("utf8")
+                print "re -> " + start_pattern.pattern
             if start_pattern.search(line):
                 auth_start_line = position
-        elif end_pattern.search(line):
-                # this could be the last author or one of many
-                auth_end_line = position
+        elif auth_end_line is None and end_pattern.search(line):            
+            # this could be the last author or one of many
+            auth_end_line = position
         elif auth_end_line is not None and end_pattern.search(line):
             break
             # leave when we have found a possible and, and the ending
             # pattern no longer matches this will fail if there are
             # affiliations interspersed, or othe corruptions of the list
-                         
-    
 
+                          
     if auth_start_line is not None:
         ## return dictionary containing details of author section:
-        auth_sect_details = { 'start_line' : auth_start_line,
-                              'end_line'   : auth_end_line,
+        auth_sect_details = {
+            'start_line' : auth_start_line,
+            'end_line'   : auth_end_line,
+            'marker_pattern' : author_pattern,
+            'title_string' : None,
+            'marker' : None,
+            'title_marker_same_line' : None,
                             }
     else:
         auth_sect_details = None
@@ -4790,6 +4799,24 @@ def wash_and_repair_reference_line(line):
     line = re_multiple_space.sub(u' ', line)
     return line
 
+
+def rebuild_author_lines(author_lines, author_pattern):
+    """Given the lines that we think make up the author section reset
+    everything so that each author is on one line
+    """
+    def found_author(matchobj):
+        """ given an author in the match obj, pushes it on the stack of lines
+        """
+        authors.append(matchobj.group(0))
+        if cli_opts['verbosity'] > 1:
+            print "Found author -> "+ matchobj.group(0)+ "\n"
+        return ' '
+    authors = []
+    author_string = ' '.join(author_lines)
+    author_pattern.sub(found_author, author_string)
+    return authors
+        
+
 def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
     """Given a reference section, rebuild the reference lines. After translation
        from PDF to text, reference lines are often broken. This is because
@@ -4909,29 +4936,32 @@ def get_lines(docbody,
             docbody[start_idx] = docbody[start_idx][title_start + \
                                                     len(title):]
     elif title is not None:
-        ## Pass title line
+        ## Pass title line 
         start_idx += 1
+
+
 
     ## now rebuild reference lines:
     if type(end_line) is int:
-        if section == 'references':
+        if section is 'references':
             lines = \
                   rebuild_reference_lines(docbody[start_idx:end_line+1], \
                                    marker_ptn)
-        elif section == 'authors':
-            # lines = \
-            #    rebuild_author_lines(docbody[start_idx:end_line+1], \
-            #                      marker_ptn)
-            lines = docbody[start_idx:end_line+1]
+        elif section is 'authors':
+            print "ready to rebuild"
+            lines = \
+                rebuild_author_lines(docbody[start_idx:end_line+1], \
+                                  marker_ptn)
+            #lines = docbody[start_idx:end_line+1]
     else:
-        if section == 'references':
+        if section is 'references':
             lines = rebuild_reference_lines(docbody[start_idx:], \
-                                            ref_line_marker_ptn)
-        elif section == 'authors':
-            # lines = \
-            #    rebuild_author_lines(docbody[start_idx:], \
-            #                      marker_ptn)
-            lines = docbody[start_idx:]
+                                            marker_ptn)
+        elif section is 'authors':
+            lines = \
+                rebuild_author_lines(docbody[start_idx:], \
+                                  marker_ptn)
+            #lines = docbody[start_idx:]
     return lines
                         
 
@@ -4966,6 +4996,8 @@ def get_reference_lines(docbody,
         from the document.
     """
     start_idx = ref_sect_start_line
+
+    
     if title_marker_same_line:
         ## Title on same line as 1st ref- take title out!
         title_start = docbody[start_idx].find(ref_sect_title)
@@ -5019,7 +5051,14 @@ def extract_section_from_fulltext(fulltext, section):
     ## Try to remove pagebreaks, headers, footers
     fulltext = remove_page_boundary_lines(fulltext)
     status = 0
-    sect_start = sect_end = None
+    sect_start = {'start_line' : None,
+                  'end_line'   : None,
+                  'title_string': None,
+                  'marker_pattern': None,
+                  'marker' : None,
+                  }
+                  
+    sect_end = None
     #How ref section found flag
     how_found_start = 0
     if section == 'references':
@@ -5040,8 +5079,10 @@ def extract_section_from_fulltext(fulltext, section):
                     sect_start = find_reference_section_no_title_via_numbers(fulltext)
                     if sect_start is not None: how_found_start = 4
     elif section == 'authors':            
-        sect_start = find_author_section(fulltext,cli_opts['first_author'])
-        
+
+        sect_start = find_author_section(fulltext, first_author = cli_opts['first_author'])
+  
+
     if sect_start is None:
         ## No References
         lines = []
@@ -5050,6 +5091,7 @@ def extract_section_from_fulltext(fulltext, section):
             sys.stdout.write("-----extract_section_from_fulltext: " \
                              "No section found\n")
     else:
+        sect_end = None
         if sect_start.has_key("end_line"):
             sect_end = sect_start["end_line"]
         if sect_end is None:
@@ -5069,11 +5111,13 @@ def extract_section_from_fulltext(fulltext, section):
         else:
             ## Extract
             lines = get_lines(fulltext, \
-                                       sect_start["start_line"], \
-                                       sect_end, \
-                                       sect_start["title_string"], \
-                                       sect_start["marker_pattern"], \
-                                       sect_start["title_marker_same_line"])
+                              sect_start["start_line"], \
+                              sect_end, \
+                              sect_start["title_string"], \
+                              sect_start["marker_pattern"], \
+                              sect_start["title_marker_same_line"],
+                              section,
+                              )
     return (lines, status, how_found_start)
 
 
@@ -5146,6 +5190,7 @@ def convert_PDF_to_plaintext(fpath):
             count += 2
     ## close pipe to pdftotext:
     pipe_pdftotext.close()
+
     if cli_opts['verbosity'] >= 1:
         sys.stdout.write("-----convert_PDF_to_plaintext found: " \
                          "%s lines of text\n" % str(count))
@@ -5246,6 +5291,8 @@ def usage(wmsg="", err_code=0):
 		  9=max information)
    -a, --authors  extract authors, not references.  most other options
                   work as expected
+   --first_author use the following regexp as the first author, helps for
+                  author extraction, ignored otherwise
    -r, --output-raw-refs
                   output raw references, as extracted from the document.
                   No MARC XML mark-up - just each extracted line, prefixed
@@ -5281,6 +5328,7 @@ def get_cli_options():
                  'xmlfile'                    : 0,
                  'dictfile'                   : 0,
                  'authors'                    : 0,
+                 'first_author'               : 0,
                }
 
     try:
@@ -5293,7 +5341,8 @@ def get_cli_options():
                                            "authors",
                                            "output-raw-refs",
                                            "xmlfile=",
-                                           "dictfile="])
+                                           "dictfile=",
+                                           "first_author",])
     except getopt.GetoptError, err:
         ## Invalid option provided - usage message
         usage(wmsg="Error: %(msg)s." % { 'msg' : str(err) })
@@ -5328,6 +5377,8 @@ def get_cli_options():
             cli_opts['dictfile'] = o[1]
         elif o[0] in ("-a", "--authors"):
             cli_opts['authors'] = 1;
+        elif o[0] in ("--first_author"):
+            cli_opts['first_author'] = 1;
         if len(myargs) == 0:
             ## no arguments: error message
             usage(wmsg="Error: no full-text.")
@@ -5527,7 +5578,7 @@ def main():
                 if len(extract_lines) == 0 and extract_error == 0:
                     extract_error = 6
                 if cli_opts['verbosity'] >= 1:
-                    sys.stdout.write("-----extract_seection_from_fulltext " \
+                    sys.stdout.write("-----extract_section_from_fulltext " \
                                      "gave len(extract_lines): %s overall error: " \
                                      "%s\n" \
                                      % (str(len(extract_lines)), str(extract_error)))
