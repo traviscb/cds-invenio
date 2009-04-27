@@ -917,6 +917,13 @@ function getSubfieldTag(MARC){
     var subfieldName = gTagNames[MARC];
       if (subfieldName != undefined)
 	return subfieldName;
+      else{
+	// Look for standardized abbrevs for subfields
+        var term = '%%%%%' + MARC.charAt(5);
+	subfieldName = gTagNames[term];
+        if (subfieldName != undefined)
+	  return subfieldName;
+       }
   }
   return '$$' + MARC.charAt(5);
 }
