@@ -273,6 +273,7 @@ def perform_request_test_search(search_criteria, update_commands, output_format,
     @param update_commands: list of commands used to update record contents
     @param output_format: specifies the output format as expected from bibformat
     @param page_to_display: the number of the page that should be displayed to the user
+                            if None, display all results with no pagination
     @param language: the language used to format the content
     """
     RECORDS_PER_PAGE = 10
@@ -281,16 +282,17 @@ def perform_request_test_search(search_criteria, update_commands, output_format,
 
     number_of_records = len(record_IDs)
 
-    if page_to_display < 1:
-        page_to_display = 1
+    if page_to_display != None:
+        if page_to_display < 1:
+            page_to_display = 1
 
-    last_page_number = number_of_records/RECORDS_PER_PAGE+1
-    if page_to_display > last_page_number:
-        page_to_display = last_page_number
+        last_page_number = number_of_records/RECORDS_PER_PAGE+1
+        if page_to_display > last_page_number:
+            page_to_display = last_page_number
 
-    first_record_to_display = RECORDS_PER_PAGE * (page_to_display - 1)
-    last_record_to_display = (RECORDS_PER_PAGE*page_to_display) - 1
-    record_IDs = record_IDs[first_record_to_display:last_record_to_display]
+        first_record_to_display = RECORDS_PER_PAGE * (page_to_display - 1)
+        last_record_to_display = (RECORDS_PER_PAGE*page_to_display) - 1
+        record_IDs = record_IDs[first_record_to_display:last_record_to_display]
 
     records_content = []
 
