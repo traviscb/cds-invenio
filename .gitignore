@@ -21,6 +21,7 @@ po/*.mo
 *.orig
 .*.orig
 .*.swp
+ltmain.sh
 *.pyc
 *.clisp.mem
 *.cmucl.core

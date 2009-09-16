@@ -1,0 +1,100 @@
+#!/usr/bin/python2.4
+##
+## This file is part of CDS Invenio.
+## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 CERN.
+##
+## CDS Invenio is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License as
+## published by the Free Software Foundation; either version 2 of the
+## License, or (at your option) any later version.
+##
+## CDS Invenio is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with CDS Invenio; if not, write to the Free Software Foundation, Inc.,
+## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+
+"""
+Batch editing tool for updating many records at once.
+
+Run with --help option to get usage information.
+"""
+
+
+import os, sys
+import optparse
+import tempfile, urllib
+import shutil
+if sys.version_info[1] >= 4:
+    import subprocess
+else:
+    sys.stderr.write(sys.argv[0] + " requires Python >= 2.4\n")
+    sys.exit(187)
+
+
+def error(msg, p=None, xval=1):
+    sys.stderr.write(msg+'\n\n')
+    if p != None: sys.stderr.write(p.format_help())
+    sys.exit(xval)
+
+def warning(msg):
+    sys.stderr.write(msg+'\n')
+
+def pick_an_editor_or_die():
+    """Look for one of the standard editors; return its path if found.
+
+    If none of the standard editors is in the user's path, explain what 
+    happened and exit.
+    """
+    warning("""Environment variable EDITOR unset; please set EDITOR when using %s.
+Falling back (in this order) to one of:
+* joe
+* pico
+* emacs
+* vi""")
+    if not os.environ.has_key('PATH') or os.environ['PATH'] == '':
+        p = os.defpath
+    else:
+        p = os.environ['PATH']
+    for dir in p.split(os.pathsep):
+        for ed in ['joe', 'pico', 'emacs', 'vi']:
+            edex = os.path.join(dir, ed)
+            if os.access(edex, os.X_OK):
+                return edex
+    error("""None of the standard editors was found on your system path.
+Please correct your environment configuration and try again.""")
+
+def command_line_parser():
+    """Configure command line option parsing and return (options, arguments) tuple
+    """
+    parser = optparse.OptionParser(usage="%prog <[options]> [search string]")
+    opts, args = parser.parse_args()
+    return parser, opts, args
+
+
+if __name__ == "__main__":
+    parser, opts, args = command_line_parser()
+
+    if len(args) == 1:
+        search_url = args[0]
+    else:
+        error("""[search string] is required.  Please perform an Invenio search to find the
+documents to modify, and cut-and-paste that URL to this command-line.""", parser)
+
+    if 'EDITOR' in os.environ:
+        editor = os.environ['EDITOR']
+    else:
+        editor = pick_an_editor_or_die()
+
+    fd, tmpfile = tempfile.mkstemp('.xm', 'invenio', '/tmp')
+    os.close(fd)
+    fd, tmpfile2 = tempfile.mkstemp('.xm', 'invenio', '/tmp')
+    os.close(fd)
+    urllib.urlretrieve(search_url, tmpfile)
+    shutil.copy(tmpfile, tmpfile2)
+
+    retcode = subprocess.call([editor, tmpfile])
+    print retcode, editor, tmpfile
