@@ -27,12 +27,14 @@ Run with --help option to get usage information.
 import os, sys
 import optparse
 import tempfile, urllib
-import shutil
+import shutil, difflib
 if sys.version_info[1] >= 4:
     import subprocess
 else:
     sys.stderr.write(sys.argv[0] + " requires Python >= 2.4\n")
     sys.exit(187)
+
+import invenio.config
 
 
 def error(msg, p=None, xval=1):
@@ -97,4 +99,24 @@ documents to modify, and cut-and-paste that URL to this command-line.""", parser
     shutil.copy(tmpfile, tmpfile2)
 
     retcode = subprocess.call([editor, tmpfile])
-    print retcode, editor, tmpfile
+    if retcode:
+        error("""Editing process returned error %s; batch edit incomplete.
+To finish the process, resolve your editor difficulties, edit %s, and then
+manually use 'bibupload' to submit the modified record.  To nullify
+this set of edits, simply do nothing.""" % (str(retcode), tmpfile) )
+
+    if len(list(difflib.unified_diff(open(tmpfile).readlines(), 
+                                     open(tmpfile2).readlines()))) == 0:
+        print "OK; batch file unmodified.  No changes submitted."
+        os.remove(tmpfile)
+        os.remove(tmpfile2)
+        sys.exit(0)
+
+    retcode = subprocess.call([invenio.config.CFG_BINDIR+os.path.sep+"bibupload", "-r", tmpfile])
+    if retcode:
+        error("""bibupload returned error code %s.  Something is awry.
+You should check the record on the website after indexing has run to make sure
+nothing is wrong with it.  Check the Invenio Admin Guide for help comparing 
+document revision histories.""" % retcode)
+
+    print "OK; these documents should be updated in the next index period."
