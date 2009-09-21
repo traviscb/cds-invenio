@@ -105,7 +105,10 @@ def command_line_parser():
     parser = optparse.OptionParser(usage="%prog <[options]> [search string]")
     tricky = optparse.OptionGroup(parser, "Tricky Options",
              "These options can be tricky to use correctly; please read the documentation carefully.")
-    tricky.add_option('-a', '--add', dest='field_tag', metavar='field_tag', default=None, 
+    tricky.add_option('-a', '--add', dest='afield_tag', metavar='field_tag', default=None, 
+                      help='Add a field of type [field_tag].  field_tag must be a MARC ' +
+                      'field identifier.  For example, 700 for an author, or 999 for a reference.')
+    tricky.add_option('-c', '--correct', dest='cfield_tag', metavar='field_tag', default=None, 
                       help='Add a field of type [field_tag].  field_tag must be a MARC ' +
                       'field identifier.  For example, 700 for an author, or 999 for a reference.')
     parser.add_option_group(tricky)
@@ -132,11 +135,12 @@ documents to modify, and cut-and-paste that URL to this command-line.""", parser
     fd, tmpfile2 = tempfile.mkstemp('.xm', 'invenio', '/tmp')
     os.close(fd)
 
-    if opts.field_tag == None:
+    if opts.afield_tag == None and opts.cfield_tag == None:
         urllib.urlretrieve(search_url, tmpfile)
     else:
+        field = opts.afield_tag or opts.cfield_tag
         original_marc = urllib.urlopen(search_url)
-        fragment = minimize_document(original_marc, opts.field_tag)
+        fragment = minimize_document(original_marc, field)
         out = open(tmpfile, 'w')
         out.writelines(fragment.toxml())
         out.close()
@@ -163,10 +167,12 @@ this set of edits, simply do nothing.""" % (str(retcode), tmpfile) )
 all tags are balanced and that every record has a controlfield element.  Then 
 call bibupload manually.""" % tmpfile)
 
-    if opts.field_tag == None:
-        retcode = subprocess.call([invenio.config.CFG_BINDIR+os.path.sep+"bibupload", "-r", tmpfile])
-    else:
+    if opts.afield_tag:
         retcode = subprocess.call([invenio.config.CFG_BINDIR+os.path.sep+"bibupload", "-a", tmpfile])
+    elif opts.cfield_tag:
+        retcode = subprocess.call([invenio.config.CFG_BINDIR+os.path.sep+"bibupload", "-c", tmpfile])
+    else:
+        retcode = subprocess.call([invenio.config.CFG_BINDIR+os.path.sep+"bibupload", "-r", tmpfile])
     if retcode:
         error("""bibupload returned error code %s.  Something is awry.
 You should check the record on the website after indexing has run to make sure
@@ -174,6 +180,6 @@ nothing is wrong with it.  Check the Invenio Admin Guide for help comparing
 document revision histories.""" % retcode)
 
     print "OK; these documents should be updated in the next index period."
-    os.remove(tmpfile)
-    os.remove(tmpfile2)
-    sys.exit(0)
+    #os.remove(tmpfile)
+    #os.remove(tmpfile2)
+    #sys.exit(0)
