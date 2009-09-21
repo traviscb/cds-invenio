@@ -28,6 +28,7 @@ import os, sys
 import optparse
 import tempfile, urllib
 import shutil, difflib
+from xml.dom import minidom  
 if sys.version_info[1] >= 4:
     import subprocess
 else:
@@ -36,6 +37,35 @@ else:
 
 import invenio.config
 
+
+def minimize_document(filename, fieldname):
+    """Process the DOM of the downloaded MARC XML so that much less remains
+
+    Strip the file back to a <collection> of <records> each with its <controlfield>
+    and the <datafield>s whose tag attributes match 'fieldname'.
+
+    @param filename - the MARC XML file to process
+    @param fieldname - the MARC field (e.g., 700, 999, 250) to be filtered on
+    @returns a string representing the reduced XML
+    """
+    dom = minidom.parse(filename)
+    if dom.documentElement.tagName != "collection":
+        error("""I failed at filtering the XML document; it doesn't appear to be a MARC XML
+collection.  Did the document search URL correctly specify '&of=xm' ?""")
+    
+    remove_queue = []
+    for record in dom.documentElement.getElementsByTagName('record'):
+        for field in record.childNodes:
+            if field.nodeName == 'datafield' and field.getAttribute('tag') == fieldname:
+                continue
+            elif field.nodeName == 'controlfield':
+                continue
+            else:
+                remove_queue.append(field)
+    for node in remove_queue:
+        record = node.parentNode
+        record.removeChild(node)
+    return dom
 
 def error(msg, p=None, xval=1):
     sys.stderr.write(msg+'\n\n')
@@ -73,6 +103,12 @@ def command_line_parser():
     """Configure command line option parsing and return (options, arguments) tuple
     """
     parser = optparse.OptionParser(usage="%prog <[options]> [search string]")
+    tricky = optparse.OptionGroup(parser, "Tricky Options",
+             "These options can be tricky to use correctly; please read the documentation carefully.")
+    tricky.add_option('-a', '--add', dest='field_tag', metavar='field_tag', default=None, 
+                      help='Add a field of type [field_tag].  field_tag must be a MARC ' +
+                      'field identifier.  For example, 700 for an author, or 999 for a reference.')
+    parser.add_option_group(tricky)
     opts, args = parser.parse_args()
     return parser, opts, args
 
@@ -95,9 +131,18 @@ documents to modify, and cut-and-paste that URL to this command-line.""", parser
     os.close(fd)
     fd, tmpfile2 = tempfile.mkstemp('.xm', 'invenio', '/tmp')
     os.close(fd)
-    urllib.urlretrieve(search_url, tmpfile)
-    shutil.copy(tmpfile, tmpfile2)
 
+    if opts.field_tag == None:
+        urllib.urlretrieve(search_url, tmpfile)
+    else:
+        original_marc = urllib.urlopen(search_url)
+        fragment = minimize_document(original_marc, opts.field_tag)
+        out = open(tmpfile, 'w')
+        out.writelines(fragment.toxml())
+        out.close()
+    # FIXME: if -a, we should parse the data down to just the field asked for and its children, and replace all of the text in them with dummy values
+
+    shutil.copy(tmpfile, tmpfile2)
     retcode = subprocess.call([editor, tmpfile])
     if retcode:
         error("""Editing process returned error %s; batch edit incomplete.
@@ -112,7 +157,16 @@ this set of edits, simply do nothing.""" % (str(retcode), tmpfile) )
         os.remove(tmpfile2)
         sys.exit(0)
 
-    retcode = subprocess.call([invenio.config.CFG_BINDIR+os.path.sep+"bibupload", "-r", tmpfile])
+    retcode = subprocess.call(['/usr/bin/xmllint', '--noout', tmpfile])
+    if retcode:
+        error("""xmllint returned errors on the file %s.  Please check to make sure
+all tags are balanced and that every record has a controlfield element.  Then 
+call bibupload manually.""" % tmpfile)
+
+    if opts.field_tag == None:
+        retcode = subprocess.call([invenio.config.CFG_BINDIR+os.path.sep+"bibupload", "-r", tmpfile])
+    else:
+        retcode = subprocess.call([invenio.config.CFG_BINDIR+os.path.sep+"bibupload", "-a", tmpfile])
     if retcode:
         error("""bibupload returned error code %s.  Something is awry.
 You should check the record on the website after indexing has run to make sure
@@ -120,3 +174,6 @@ nothing is wrong with it.  Check the Invenio Admin Guide for help comparing
 document revision histories.""" % retcode)
 
     print "OK; these documents should be updated in the next index period."
+    os.remove(tmpfile)
+    os.remove(tmpfile2)
+    sys.exit(0)
