@@ -197,9 +197,9 @@ function onButtonSubmitChangesClick(){
 	/*
 	 * Submits changes defined by user
 	 */
-	alert("This functionality is disabled during the testing period.");
-	//gActionToPerform = gActionTypes.submitChanges;
-	//performAJAXRequest();
+	//alert("This functionality is disabled during the testing period.");
+	gActionToPerform = gActionTypes.submitChanges;
+	performAJAXRequest();
 }
 
 function performAJAXRequest() {

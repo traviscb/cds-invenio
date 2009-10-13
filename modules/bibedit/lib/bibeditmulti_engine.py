@@ -321,7 +321,7 @@ def perform_request_submit_changes(search_criteria, update_commands, language):
     """
     # FIXME: remove this row when you want to allow submition
     # It is disabled during the test period.
-    return "This functionality is disabled during the testing period."
+    #return "This functionality is disabled during the testing period."
 
     _submit_changes_to_bibupload(search_criteria, update_commands)
 

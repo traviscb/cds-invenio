@@ -22,7 +22,6 @@
 import sys, os
 import optparse
 
-import invenio.messages 
 from invenio.config import CFG_SITE_LANG
 
 from invenio.webinterface_handler import WebInterfaceDirectory, \
@@ -219,20 +218,7 @@ if __name__ == "__main__":
     #         --change-value-from Fuu --change-value-to Foo\
 
     ln = CFG_SITE_LANG
-    if 'LANG' in os.environ:
-        ln = os.environ['LANG']
-    ln = invenio.messages.wash_language(ln)
-    _ = invenio.messages.gettext_set_language(ln)
 
-    # FIXME: CLI should be fully internationalized; the options themselves 
-    #        should remain stable, but the usage, description, and help text
-    #        of each option should be updated for each supported language
-    #        Cf. invenio.messages and ABOUT-NLS.
-    #
-    #        XXX: This can be done by bringing in a dictionary of values and
-    #             then relying on it in deference to the text strings in
-    #             usage, description, each of the "metavar" tags and each of 
-    #             the "help" tags in each add_option() call below.
     cli_usage = "%prog [options] [PATTERN]" 
     cli_desc = "Updates records in one fell swoop.  Searches based on PATTERN.  Default behavior is to to preview changes only; use -A to make them permanent."
     parser = optparse.OptionParser(usage=cli_usage, description=cli_desc)
