@@ -19,6 +19,7 @@ po/*.gmo
 po/*.mo
 .*.swp
 *~
+*.orig
 *.pyc
 *.clisp.mem
 *.cmucl.core
