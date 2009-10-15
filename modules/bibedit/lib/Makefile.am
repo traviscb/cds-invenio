@@ -35,6 +35,8 @@ pylib_DATA = bibrecord_config.py \
              bibeditold_utils.py \
              bibedit_utils.py \
              bibedit_webinterface.py \
+			 bibeditauthors_engine.py \
+			 bibeditauthors_webinterface.py \
              bibeditmulti_templates.py \
              bibeditmulti_webinterface.py \
              bibeditmulti_engine.py
@@ -43,7 +45,9 @@ jsdir=$(localstatedir)/www/js
 
 js_DATA = bibedit_display.js \
           bibedit_engine.js \
+          bibeditauthors_engine.js \
           bibedit_keys.js \
+		  bibeditauthors_keys.js \
           bibedit_menu.js \
           bibeditmulti.js
 

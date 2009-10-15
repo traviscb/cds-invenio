@@ -88,6 +88,7 @@ from invenio.bibrank_downloads_indexer import get_download_weight_total
 from invenio.search_engine_summarizer import summarize_records
 from invenio.errorlib import register_exception
 from invenio.bibedit_webinterface import WebInterfaceEditPages
+from invenio.bibeditauthors_webinterface import WebInterfaceEditauthorsPages
 from invenio.bibeditmulti_webinterface import WebInterfaceMultiEditPages
 from invenio.bibmerge_webinterface import WebInterfaceMergePages
 
@@ -337,7 +338,7 @@ class WebInterfaceRecordPages(WebInterfaceDirectory):
 
     _exports = ['', 'files', 'reviews', 'comments', 'usage',
                 'references', 'export', 'citations', 'holdings', 'edit',
-                'keywords', 'multiedit', 'merge']
+                'editauthors', 'keywords', 'multiedit', 'merge']
 
     #_exports.extend(output_formats)
 
@@ -357,6 +358,7 @@ class WebInterfaceRecordPages(WebInterfaceDirectory):
         self.citations = self
         self.export = WebInterfaceRecordExport(self.recid, self.format)
         self.edit = WebInterfaceEditPages(self.recid)
+        self.editauthors = WebInterfaceEditauthorsPages(self.recid)
         self.merge = WebInterfaceMergePages(self.recid)
 
         return
@@ -414,7 +416,7 @@ class WebInterfaceRecordRestrictedPages(WebInterfaceDirectory):
 
     _exports = ['', 'files', 'reviews', 'comments', 'usage',
                 'references', 'export', 'citations', 'holdings', 'edit',
-                'keywords', 'multiedit', 'merge']
+                'editauthors', 'keywords', 'multiedit', 'merge']
 
     #_exports.extend(output_formats)
 
@@ -433,6 +435,7 @@ class WebInterfaceRecordRestrictedPages(WebInterfaceDirectory):
         self.citations = self
         self.export = WebInterfaceRecordExport(self.recid, self.format)
         self.edit = WebInterfaceEditPages(self.recid)
+        self.editauthors = WebInterfaceEditauthorsPages(self.recid)
         self.merge = WebInterfaceMergePages(self.recid)
 
         return
@@ -758,6 +761,9 @@ class WebInterfaceSearchInterfacePages(WebInterfaceDirectory):
 
         elif component == 'record' and path and path[0] == 'edit':
             return WebInterfaceEditPages(), path[1:]
+
+        elif component == 'record' and path and path[0] == 'editauthors':
+            return WebInterfaceEditauthorsPages(), path[1:]
 
         elif component == 'record' and path[0] == 'multiedit':
             return WebInterfaceMultiEditPages(), path[1:]
