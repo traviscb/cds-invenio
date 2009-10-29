@@ -129,11 +129,24 @@ function createRow(tag, ind1, ind2, subfieldCode, subfieldValue, fieldID,
   cellContentClass = 'class="bibEditCellContentProtected" ',
   cellContentTitle='',
   cellContentOnClick = '';
+  var autosuggestkeypress = "";
+  var autosuggest = false;
+  var autocomplete = false;
+  var autokeyword = false;
+  for (var i=0;i<gAUTOSUGGEST_TAGS.length;i++) { if (MARC == gAUTOSUGGEST_TAGS[i]) { autosuggest = true; }}
+  for (var i=0;i<gAUTOCOMPLETE_TAGS.length;i++) { if (MARC == gAUTOCOMPLETE_TAGS[i]) { autocomplete = true; }}
+  if (MARC == gKEYWORD_TAG) { autokeyword = true; } 
   if (!protectedField){
     // Enable features for unprotected fields.
     if (!protectedSubfield){
       cellContentClass = 'class="bibEditCellContent" ';
       cellContentTitle = 'title="Click to edit" ';
+      if (autosuggest || autokeyword) {
+          cellContentTitle = 'title="Click to edit (suggest values: ctrl-shift-a or ctrl-9) " ';
+      }
+      if (autocomplete) {
+          cellContentTitle = 'title="Click to edit (complete values: ctrl-shift-a or ctrl-9) " ';
+      }
       cellContentOnClick = 'onclick="onContentClick(this)" ';
     }
   }
@@ -155,7 +168,7 @@ function createRow(tag, ind1, ind2, subfieldCode, subfieldValue, fieldID,
       btnAddSubfield = img('/img/add.png', 'btnAddSubfield_' + fieldID, '',
       {title: 'Add subfield', onclick: 'onAddSubfieldsClick(this)'});
   }
-  return '' +
+  myelement = '' +
     '<tr id="row_' + subfieldID + '">' +
       '<td class="bibEditCellField">' + boxField + '</td>' +
       '<td ' + cellFieldTagAttrs  + '>' + fieldTagToPrint + '</td>' +
@@ -165,11 +178,17 @@ function createRow(tag, ind1, ind2, subfieldCode, subfieldValue, fieldID,
 	subfieldTagToPrint +
       '</td>' +
       '<td id="content_' + subfieldID + '" ' + cellContentClass +
-	cellContentTitle + cellContentOnClick + 'tabindex="0">' +
+	cellContentTitle + autosuggestkeypress + cellContentOnClick + 'tabindex="0">' +
 	subfieldValue +
       '</td>' +
       '<td class="bibEditCellAddSubfields">' + btnAddSubfield + '</td>' +
-    '</tr>';
+      '</tr>';
+  /*add a place where the autosuggest box goes, if needed*/
+  if (autosuggest || autokeyword) {
+    myelement = myelement +
+    '<tr><td></td><td></td><td></td><td></td><td tabindex="0" id="autosuggest_' + subfieldID + '">' + '<td></td></td></tr>';
+  }
+  return myelement;
 }
 
 function redrawFields(tag){
@@ -276,12 +295,12 @@ function createAddFieldRow(fieldTmpNo, subfieldTmpNo){
     '</tr>';
 }
 
-function createAddSubfieldsForm(fieldID){
+function createAddSubfieldsForm(fieldID, defSubCode, defValue){
   /*
    * Create an 'Add subfields' form.
    */
   return '' +
-    createAddSubfieldsRow(fieldID, 0) +
+      createAddSubfieldsRow(fieldID, 0, defSubCode, defValue) +
     '<tr id="rowAddSubfieldsControls_' + fieldID + '">' +
       '<td></td>' +
       '<td></td>' +
@@ -296,7 +315,7 @@ function createAddSubfieldsForm(fieldID){
     '</tr>';
 }
 
-function createAddSubfieldsRow(fieldID, subfieldTmpNo){
+function createAddSubfieldsRow(fieldID, subfieldTmpNo, defSubCode, defValue){
   /*
    * Create a row in the 'Add subfields' form.
    */
@@ -310,10 +329,10 @@ function createAddSubfieldsRow(fieldID, subfieldTmpNo){
       '<td></td>' +
       '<td class="bibEditCellAddSubfieldCode">' +
 	input('text', 'txtAddSubfieldsCode_' + subfieldID,
-	      'bibEditTxtSubfieldCode', {maxlength: 1}) +
+	      'bibEditTxtSubfieldCode', {maxlength: 1},  defSubCode) +
       '</td>' +
       '<td>' +
-	input('text', 'txtAddSubfieldsValue_' + subfieldID, 'bibEditTxtValue') +
+      input('text', 'txtAddSubfieldsValue_' + subfieldID, 'bibEditTxtValue', {}, defValue) +
       '</td>' +
       '<td>' + btnRemove + '</td>' +
     '</tr>';
@@ -560,7 +579,7 @@ function img(src, id, _class, attrs){
   return '<img ' + src + id + _class + strAttrs + '/>';
 }
 
-function input(type, id, _class, attrs){
+function input(type, id, _class, attrs, defvalue){
   /*
    * Create an input tag with specified attributes.
    */
@@ -571,7 +590,9 @@ function input(type, id, _class, attrs){
   for (var attr in attrs){
     strAttrs += attr + '="' + attrs[attr] + '" ';
   }
-  return '<input ' + type + id + _class + strAttrs + '/>';
+  myval = '';
+  if ((defvalue != null) && (defvalue != ""))  { myval = ' value="'+defvalue+'" '; } 
+  return '<input ' + type + id + _class + strAttrs + myval + '/>';
 }
 
 function escapeHTML(value){
