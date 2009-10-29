@@ -31,7 +31,9 @@ from invenio.bibedit_config import CFG_BIBEDIT_AJAX_RESULT_CODES, \
     CFG_BIBEDIT_JS_NEW_CONTENT_HIGHLIGHT_DELAY, \
     CFG_BIBEDIT_JS_STATUS_ERROR_TIME, CFG_BIBEDIT_JS_STATUS_INFO_TIME, \
     CFG_BIBEDIT_JS_TICKET_REFRESH_DELAY, CFG_BIBEDIT_MAX_SEARCH_RESULTS, \
-    CFG_BIBEDIT_TAG_FORMAT
+    CFG_BIBEDIT_TAG_FORMAT, CFG_BIBEDIT_AUTOSUGGEST_TAGS, \
+    CFG_BIBEDIT_AUTOCOMPLETE_TAGS_KBS, CFG_BIBEDIT_KEYWORD_TAXONOMY, \
+    CFG_BIBEDIT_KEYWORD_TAG, CFG_BIBEDIT_KEYWORD_RDFLABEL
 from invenio.bibedit_dblayer import get_name_tags_all, reserve_record_id
 from invenio.bibedit_utils import cache_exists, cache_expired, \
     create_cache_file, delete_cache_file, get_bibrecord, \
@@ -42,12 +44,14 @@ from invenio.bibedit_utils import cache_exists, cache_expired, \
 from invenio.bibrecord import create_record, print_rec, record_add_field, \
     record_add_subfield_into, record_delete_field, \
     record_delete_subfield_from, record_modify_controlfield, \
-    record_modify_subfield, record_move_subfield, record_move_fields
+    record_modify_subfield, record_move_subfield, record_move_fields, record_get_field_values
 from invenio.config import CFG_BIBEDIT_PROTECTED_FIELDS, CFG_CERN_SITE, \
     CFG_SITE_URL
 from invenio.search_engine import record_exists, search_pattern
 from invenio.webuser import session_param_get, session_param_set
 from invenio.bibcatalog import bibcatalog_system
+from invenio.bibknowledge import get_kbd_values_for_bibedit, get_kbr_values, \
+     get_kbt_items_for_bibedit #autosuggest
 
 import invenio.template
 
@@ -93,7 +97,10 @@ def perform_request_init():
             'gNEW_CONTENT_HIGHLIGHT_DELAY':
                 CFG_BIBEDIT_JS_NEW_CONTENT_HIGHLIGHT_DELAY,
             'gTICKET_REFRESH_DELAY': CFG_BIBEDIT_JS_TICKET_REFRESH_DELAY,
-            'gRESULT_CODES': CFG_BIBEDIT_AJAX_RESULT_CODES
+            'gRESULT_CODES': CFG_BIBEDIT_AJAX_RESULT_CODES,
+            'gAUTOSUGGEST_TAGS' : CFG_BIBEDIT_AUTOSUGGEST_TAGS,
+            'gAUTOCOMPLETE_TAGS' : CFG_BIBEDIT_AUTOCOMPLETE_TAGS_KBS.keys(),
+            'gKEYWORD_TAG' : '"' + CFG_BIBEDIT_KEYWORD_TAG  + '"'
             }
     body += '<script type="text/javascript">\n'
     for key in data:
@@ -152,7 +159,8 @@ def perform_request_ajax(req, recid, uid, data):
         response.update(perform_request_record(req, request_type, recid, uid,
                                                data))
     elif request_type in ('addField', 'addSubfields', 'modifyContent',
-                          'moveSubfield', 'deleteFields', 'moveField'):
+                          'moveSubfield', 'deleteFields', 'moveField',
+                          'autosuggest', 'autocomplete', 'autokeyword'):
         # Record updates.
         response.update(perform_request_update_record(
                 request_type, recid, uid, data))
@@ -396,7 +404,8 @@ def perform_request_update_record(request_type, recid, uid, data):
     if not cache_exists(recid, uid):
         response['resultCode'] = 106
     elif not get_cache_mtime(recid, uid) == data['cacheMTime']:
-        response['resultCode'] = 107
+        response['resultCode'] = 100
+        #107!
     else:
         record_revision, record = get_cache_file_contents(recid, uid)[1:]
         field_position_local = data.get('fieldPosition')
@@ -456,10 +465,7 @@ def perform_request_update_record(request_type, recid, uid, data):
             deleted_fields = 0
             deleted_subfields = 0
             for tag in to_delete:
-                # Sorting the fields in a edcreasing order by the local position !
-                fieldsOrder = to_delete[tag].keys()
-                fieldsOrder.sort(lambda a,b: int(b)-int(a))
-                for field_position_local in fieldsOrder:
+                for field_position_local in to_delete[tag]:
                     if not to_delete[tag][field_position_local]:
                         # No subfields specified - delete entire field.
                         record_delete_field(record, tag,
@@ -485,6 +491,80 @@ def perform_request_update_record(request_type, recid, uid, data):
             else:
                 response['resultCode'] = 30
 
+        elif (request_type == 'autosuggest' or \
+              request_type == 'autocomplete' or \
+              request_type == 'autokeyword' ):
+            # get the values based on which one needs to search
+            searchby = data['value']
+            #we check if the data is properly defined
+            fulltag = ''
+            if data.has_key('maintag') and data.has_key('subtag1') and \
+               data.has_key('subtag2') and data.has_key('subfieldcode'):
+                maintag = data['maintag']
+                subtag1 = data['subtag1']
+                subtag2 = data['subtag2']
+                u_subtag1 = subtag1
+                u_subtag2 = subtag2
+                if (not subtag1) or (subtag1 == ' '):
+                    u_subtag1 = '_'
+                if (not subtag2) or (subtag2 == ' '):
+                    u_subtag2 = '_'
+                subfieldcode = data['subfieldcode']
+                fulltag = maintag+u_subtag1+u_subtag2+subfieldcode
+            if (request_type == 'autokeyword'):
+                #call the keyword-form-ontology function
+                if fulltag and searchby:
+                    items = get_kbt_items_for_bibedit(CFG_BIBEDIT_KEYWORD_TAXONOMY, \
+                            CFG_BIBEDIT_KEYWORD_RDFLABEL, searchby)
+                    response['autokeyword'] = items
+            if (request_type == 'autosuggest'):
+                #call knowledge base function to put the suggestions in an array..
+                if fulltag and searchby and len(searchby) > 3:
+                    suggest_values = get_kbd_values_for_bibedit(fulltag, "", searchby)
+                    #remove ..
+                    new_suggest_vals = []
+                    for sugg in suggest_values:
+                        if sugg.startswith(searchby):
+                            new_suggest_vals.append(sugg)
+                    response['autosuggest'] = new_suggest_vals
+            if (request_type == 'autocomplete'):
+                #call the values function with the correct kb_name
+                if CFG_BIBEDIT_AUTOCOMPLETE_TAGS_KBS.has_key(fulltag):
+                    kbname = CFG_BIBEDIT_AUTOCOMPLETE_TAGS_KBS[fulltag]
+                    #check if the seachby field has semicolons. Take all
+                    #the semicolon-separated items..
+                    items = []
+                    vals = []
+                    if searchby:
+                        if searchby.rfind(';'):
+                            items = searchby.split(';')
+                        else:
+                            items = [searchby.strip()]
+                    for item in items:
+                        item = item.strip()
+                        kbrvals = get_kbr_values(kbname, item, 'e') #we want an exact match
+                        if kbrvals and kbrvals[0]: #add the found val into vals
+                            vals.extend(kbrvals[0])
+                    #check that the values are not already contained in other
+                    #instances of this field
+                    record_revision, record = get_cache_file_contents(recid, uid)[1:]
+                    xml_rec = print_rec(record)
+                    record, status_code, dummy_errors = create_record(xml_rec)
+                    existing_values = []
+                    if (status_code != 0):
+                        existing_values = record_get_field_values(record,
+                                                                  maintag,
+                                                                  subtag1,
+                                                                  subtag2,
+                                                                  subfieldcode)
+                    #get the new values.. i.e. vals not in existing
+                    new_vals = vals
+                    for val in new_vals:
+                        if val in existing_values:
+                            new_vals.remove(val)
+                    response['autocomplete'] = new_vals
+            response['resultCode'] = 33
+
         response['cacheMTime'], response['cacheDirty'] = \
             update_cache_file_contents(recid, uid, record_revision, record), \
             True
@@ -502,17 +582,22 @@ def perform_request_bibcatalog(request_type, recid, uid):
         if uid:
             bibcat_resp = bibcatalog_system.check_system(uid)
             if bibcat_resp == "":
-                tickets_found = bibcatalog_system.ticket_search(uid, status=['new', 'open'], recordid=recid)
-                t_url_str = '' #put ticket urls here, formatted for HTML display
+                tickets_found = bibcatalog_system.ticket_search(uid,
+                                 status=['new', 'open'], recordid=recid)
+                t_url_str = '' #put ticket urls here,
+                               #formatted for HTML display
                 for t_id in tickets_found:
-                    #t_url = bibcatalog_system.ticket_get_attribute(uid, t_id, 'url_display')
-                    ticket_info = bibcatalog_system.ticket_get_info(uid, t_id, ['url_display','url_close'])
+                    ticket_info = bibcatalog_system.ticket_get_info(uid,
+                                   t_id, ['url_display', 'url_close'])
                     t_url = ticket_info['url_display']
                     t_close_url = ticket_info['url_close']
                     #format..
-                    t_url_str += "#"+str(t_id)+'<a href="'+t_url+'">[read]</a> <a href="'+t_close_url+'">[close]</a><br/>'
+                    t_url_str += "#"+str(t_id)+'<a href="'+t_url+'">[read]</a> '
+                    t_url_str += '<a href="'+t_close_url+'">[close]</a><br/>'
                 #put ticket header and tickets links in the box
-                t_url_str = "<strong>Tickets</strong><br/>"+t_url_str+"<br/>"+'<a href="new_ticket?recid='+str(recid)+'>[new ticket]<a>'
+                t_url_str = "<strong>Tickets</strong><br/>"+t_url_str
+                t_url_str += "<br/>"+'<a href="new_ticket?recid='
+                t_url_str += str(recid)+'>[new ticket]<a>'
                 response['tickets'] = t_url_str
                 #add a new ticket link
             else:

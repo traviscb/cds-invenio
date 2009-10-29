@@ -277,6 +277,7 @@ function onAjaxSuccess(json, onSuccess){
       $('.headline').text('Record Editor: Record #' + recID);
     displayMessage(resCode);
     if (resCode == 107)
+      return;
       $('#lnkGetRecord').bind('click', function(event){
         getRecord(recID);
         event.preventDefault();
@@ -1324,15 +1325,24 @@ function onAddFieldSave(event){
 		     gNEW_CONTENT_COLOR_FADE_DURATION);
 }
 
+
 function onAddSubfieldsClick(img){
   /*
    * Handle 'Add subfield' buttons.
    */
   var fieldID = img.id.slice(img.id.indexOf('_')+1);
+  addSubfield(fieldID);
+}
+
+function addSubfield(fieldID, defSubCode, defValue) {
+  /* add a subfield based on fieldID, where the first 3 digits are
+   * the main tag, followed by _ and the position of the field.
+   * defSubCode = the default value for subfield code
+  */
   var jQRowGroupID = '#rowGroup_' + fieldID;
   if ($('#rowAddSubfieldsControls_' + fieldID).length == 0){
     // The 'Add subfields' form does not exist for this field.
-    $(jQRowGroupID).append(createAddSubfieldsForm(fieldID));
+    $(jQRowGroupID).append(createAddSubfieldsForm(fieldID, defSubCode, defValue));
     $(jQRowGroupID).data('freeSubfieldTmpNo', 1);
     $('#txtAddSubfieldsCode_' + fieldID + '_' + 0).bind('keyup',
       onAddSubfieldsChange);
@@ -1518,6 +1528,136 @@ function onContentClick(cell){
   }
 }
 
+/*call autosuggest, get the values, suggest them to the user*/
+/*this is typically called when autosuggest key is pressed*/
+function onAutosuggest(event) {
+  var mytarget = event.target;
+  if (event.srcElement) mytarget = event.srcElement;/*fix for IE*/
+  var myparent = mytarget.parentNode;
+  var mygrandparent = myparent.parentNode;
+  var parentid = myparent.id;
+  var value = mytarget.value;
+  var mylen = value.length;
+  var replacement = ""; //used by autocomplete
+  var tmpArray = mygrandparent.id.split('_');
+  //alert("parentid "+ parentid +" grannyid "+ mygrandparent.id);
+  /*ids for autosuggest/autocomplete html elements*/
+  var content_id = 'content_'+tmpArray[1]+'_'+tmpArray[2]+'_'+tmpArray[3];
+  var autosuggest_id = 'autosuggest_'+tmpArray[1]+'_'+tmpArray[2]+'_'+tmpArray[3];
+  var select_id = 'select_'+tmpArray[1]+'_'+tmpArray[2]+'_'+tmpArray[3];
+  var maintag = tmpArray[1], fieldPosition = tmpArray[2],
+	  subfieldIndex = tmpArray[3];
+  var field = gRecord[maintag][fieldPosition];
+  var subfieldcode = field[0][subfieldIndex][0];
+  var subtag1 = field[1];
+  var subtag2 = field[2];
+  //check if this an autosuggest or autocomplete field.
+  var fullcode = getMARC(maintag, fieldPosition, subfieldIndex);
+  var reqtype = ""; //autosuggest or autocomplete, according to tag..
+  for (var i=0;i<gAUTOSUGGEST_TAGS.length;i++) { if (fullcode == gAUTOSUGGEST_TAGS[i]) { reqtype = "autosuggest" }}
+  for (var i=0;i<gAUTOCOMPLETE_TAGS.length;i++) { if (fullcode == gAUTOCOMPLETE_TAGS[i]) { reqtype = "autocomplete" }}
+  if (fullcode == gKEYWORD_TAG) { reqtype = "autokeyword" }
+  if (reqtype == "") {
+    return;
+  }
+
+  // Create Ajax request.
+  var data = {
+    recID: gRecID,
+    maintag: maintag,
+    subtag1: subtag1,
+    subtag2: subtag2,
+    subfieldcode: subfieldcode,
+    requestType: reqtype,
+    value: value
+  }; //reqtype is autosuggest, autocomplete or autokeyword
+  createReq(data, function(json){
+    updateStatus('report', gRESULT_CODES[json['resultCode']]);
+    suggestions = json[reqtype];
+    if (reqtype == 'autocomplete') {
+        if ((suggestions != null) && (suggestions.length > 0)) {
+            //put the first one "here"
+            replacement = suggestions[0];
+            var myelement = document.getElementById(mygrandparent.id);
+            if (myelement != null) {
+               //put in the the gRecord
+               gRecord[maintag][fieldPosition][0][subfieldIndex][1] = replacement;
+               mytarget.value = replacement;
+            }
+            //for the rest, create new subfields
+            for (var i=1;i<suggestions.length;i++) {
+                var valuein = suggestions[i];
+                var addhereID = maintag+"_"+fieldPosition; //an id to indicate where the new subfield goes
+                addSubfield(addhereID, subfieldcode, valuein);
+            }
+        } else { //autocomplete, nothing found
+            alert("No suggestions for your search term "+value);
+        }
+    } //autocomplete
+    if ((reqtype == 'autosuggest') || (reqtype == 'autokeyword')) {
+        if ((suggestions != null) && (suggestions.length > 0)) {
+            /*put the suggestions in the div autosuggest_xxxx*/
+            //make a nice box..
+            mysel = '<table width="400" border="0"><tr><td><span class="bibeditscrollArea"><ul>';
+            //create the select items..
+            for (var i=0;i<suggestions.length;i++) {
+               tmpid = select_id+"-"+suggestions[i];
+               mysel = mysel +'<li onClick="onAutosuggestSelect(\''+tmpid+'\');">'+suggestions[i]+"</li>";
+            }
+            mysel = mysel+"</ul></td>"
+            //add a stylish close link in case the user does not find
+            //the value among the suggestions
+            mysel = mysel + "<td><form><input type='button' value='close' onClick='onAutosuggestSelect(\""+select_id+"-"+'\");></form></td>';
+            mysel = mysel+"</tr></table>";
+            //for (var i=0;i<suggestions.length;i++) { mysel = mysel + +suggestions[i]+ " "; }
+            autosugg_in = document.getElementById(autosuggest_id);
+            if (autosugg_in != null) { autosugg_in.innerHTML = mysel; }
+         } else { //there were no suggestions
+             alert("No suggestions for your search term "+value);
+         }
+    } //autosuggest
+  }, false); /*NB! This function is called synchronously.*/
+} //onAutoSuggest
+
+
+/*put the content of the autosuggest select into the field where autoselect was lauched*/
+function onAutosuggestSelect(selectidandselval){
+  /*first take the selectid. It is the string before the first hyphen*/
+  var tmpArray = selectidandselval.split('-');
+  var selectid = tmpArray[0];
+  var selval =  tmpArray[1];
+  /*generate the content element id and autosuggest element id from the selectid*/
+  var tmpArray = selectid.split('_');
+  var content_id = 'content_'+tmpArray[1]+'_'+tmpArray[2]+'_'+tmpArray[3];
+  var autosuggest_id = 'autosuggest_'+tmpArray[1]+'_'+tmpArray[2]+'_'+tmpArray[3];
+  var content_t = document.getElementById(content_id); //table
+  var content = null; //the actual text
+  //this is interesting, since if the user is browsing the list of selections by mouse,
+  //the autogrown form has disapperaed and there is only the table left.. so check..
+  if (content_t.innerHTML.indexOf("<form>") ==0) {
+     var content_f = null; //form
+     var content_ta = null; //textarea
+     if (content_t) {
+         content_f = content_t.firstChild; //form is the sub-elem of table
+     }
+     if (content_f) {
+         content_ta = content_f.firstChild; //textarea is the sub-elem of form
+     }
+     if (!(content_ta)) { return; }
+     content = content_ta;
+  } else {
+     content = content_t;
+  }
+  /*put value in place*/
+  if (selval) {
+      content.innerHTML = selval;
+      content.value = selval;
+  }
+  /*remove autosuggest box*/
+  var autosugg_in = document.getElementById(autosuggest_id);
+  autosugg_in.innerHTML = "";
+}
+
 function onContentChange(value){
   /*
    * Handle 'Save' button in editable content fields.
@@ -1634,7 +1774,7 @@ function onDeleteClick(event){
   $(checkedFieldBoxes).each(function(){
     var tmpArray = this.id.split('_');
     var tag = tmpArray[1], fieldPosition = tmpArray[2];
-    if (!toDelete[tag]) {
+    if (!toDelete[tag]){
       toDelete[tag] = {};
     }
     toDelete[tag][fieldPosition] = [];
@@ -1644,26 +1784,26 @@ function onDeleteClick(event){
   // Collect subfields to be deleted in toDelete.
   $(checkedSubfieldBoxes).each(function(){
     var tmpArray = this.id.split('_');
-    var tag = tmpArray[1], fieldPosition = tmpArray[2], subfieldIndex = tmpArray[3];
-    if (!toDelete[tag]) {
+    var tag = tmpArray[1], fieldPosition = tmpArray[2],
+      subfieldIndex = tmpArray[3];
+    if (!toDelete[tag]){
       toDelete[tag] = {};
       toDelete[tag][fieldPosition] = [subfieldIndex];
     }
-    else {
+    else{
       if (!toDelete[tag][fieldPosition])
-        toDelete[tag][fieldPosition] = [subfieldIndex];
+	toDelete[tag][fieldPosition] = [subfieldIndex];
+      else if (toDelete[tag][fieldPosition].length == 0)
+	// Entire field scheduled for the deletion.
+	return;
       else
-        if (toDelete[tag][fieldPosition].length == 0)
-          // Entire field scheduled for the deletion.
-          return;
-        else
-          toDelete[tag][fieldPosition].push(subfieldIndex);
+	toDelete[tag][fieldPosition].push(subfieldIndex);
     }
   });
 
   // Assert that no protected fields are scheduled for deletion.
   var protectedField = containsProtectedField(toDelete);
-  if (protectedField) {
+  if (protectedField){
     displayAlert('alertDeleteProtectedField', [protectedField]);
     updateStatus('ready');
     return;
@@ -1681,46 +1821,41 @@ function onDeleteClick(event){
 
   // Continue local updating.
   // Parse datastructure and delete accordingly in record.
-  var fieldsToDelete, subfieldIndexesToDelete, field, subfields, subfieldIndex;
-  for (var tag in toDelete) {
+  var fieldsToDelete, subfieldIndexesToDelete, field, subfields,
+  subfieldIndex;
+  for (var tag in toDelete){
     fieldsToDelete = toDelete[tag];
-    // The fields should be treated in the decreasing order (during the removal, indices may change)
-    traversingOrder = [];
-    for (fieldPosition in fieldsToDelete) {
-      traversingOrder.push(fieldPosition);
-    }
-    // normal sorting will do this in a lexycographical order ! (problems if > 10 subfields
-    // function provided, allows sorting in the reversed order
-    traversingOrder = traversingOrder.sort(function(a, b){
-      return b - a;
-    });
-    for (var fieldInd in traversingOrder) {
-      fieldPosition = traversingOrder[fieldInd];
+    for (var fieldPosition in fieldsToDelete){
       var fieldID = tag + '_' + fieldPosition;
       subfieldIndexesToDelete = fieldsToDelete[fieldPosition];
       if (subfieldIndexesToDelete.length == 0)
-        deleteFieldFromTag(tag, fieldPosition);
-      else {
-        // normal sorting will do this in a lexycographical order ! (problems if > 10 subfields
-        subfieldIndexesToDelete.sort(function(a, b){
-          return a - b;
-        });
-        field = gRecord[tag][fieldPosition];
-        subfields = field[0];
-        for (var j = subfieldIndexesToDelete.length - 1; j >= 0; j--)
-          subfields.splice(subfieldIndexesToDelete[j], 1);
-        var rowGroup = $('#rowGroup_' + fieldID);
+	deleteFieldFromTag(tag, fieldPosition);
+      else{
+	subfieldIndexesToDelete.sort();
+	field = gRecord[tag][fieldPosition];
+	subfields = field[0];
+	for (var j=subfieldIndexesToDelete.length-1; j>=0; j--)
+	  subfields.splice(subfieldIndexesToDelete[j], 1);
+	var rowGroup = $('#rowGroup_' + fieldID);
+	if (!reColorTable){
+	  // Color and redraw the field, if it won't be done later.
+	  var coloredRowGroup = $(rowGroup).hasClass('bibEditFieldColored');
+	  $(rowGroup).replaceWith(createField(tag, field));
+	  if (coloredRowGroup)
+	    $('#rowGroup_' + fieldID).addClass( 'bibEditFieldColored');
+	}
+	else if (!tagsToRedraw[tag])
+	  // Redraw the field if it won't be done later.
+	  $(rowGroup).replaceWith(createField(tag, field));
       }
     }
-
-    redrawFields(tag);
   }
   if (reColorTable)
     // If entire fields has been deleted, redraw all fields with the same tag
     // and recolor the full table.
     for (tag in tagsToRedraw)
       redrawFields(tag);
-  reColorFields();
+    reColorFields();
 }
 
 function onMoveFieldUp(tag, fieldPosition) {

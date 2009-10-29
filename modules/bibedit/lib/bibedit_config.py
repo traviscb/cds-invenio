@@ -115,6 +115,7 @@ CFG_BIBEDIT_AJAX_RESULT_CODES = {
     30: 'Selection deleted',
     31: 'Tickets retrieved',
     32: 'Field moved',
+    33: 'Autosuggestion scanned',
     100: 'Error: Not logged in',
     101: 'Error: Permission denied',
     102: 'Error: Non-existent record',
@@ -125,7 +126,8 @@ CFG_BIBEDIT_AJAX_RESULT_CODES = {
     107: 'Error: Cache file changed',
     108: 'Error: Template file missing',
     109: 'Error: Invalid template file',
-    110: 'Error: Invalid content in record'
+    110: 'Error: Invalid content in record',
+
 }
 
 ## CFG_BIBEDIT_MAX_SEARCH_RESULTS
@@ -141,3 +143,17 @@ CFG_BIBEDIT_TO_MERGE_SUFFIX = 'merge'
 
 # CFG_BIBEDIT_RECORD_TEMPLATES_PATH - path to record template directory
 CFG_BIBEDIT_RECORD_TEMPLATES_PATH = "%s%sbibedit%srecord_templates" % (CFG_ETCDIR, os.sep, os.sep)
+
+# CFG_BIBEDIT_AUTOSUGGEST_TAGS - for which tags the editor should try to autosuggest values
+# This is "safe" to have configured since it does not rely to a particular existing KB
+CFG_BIBEDIT_AUTOSUGGEST_TAGS = ['100__a']
+# CFG_BIBEDIT_AUTOCOMPLETE_TAGS_KBS - a dictionary whose keys are tags and values kb names
+# This is better left empty when in doubt
+CFG_BIBEDIT_AUTOCOMPLETE_TAGS_KBS = {} # { '65017a': 'SISC-65017a---65017a' }
+# CFG_BIBEDIT_KEYWORD_TAXONOMY - the name of the taxonomy DB that holds the taxonomy file used 
+# for getting the keywords. Use only if you have a taxonomy KB.
+CFG_BIBEDIT_KEYWORD_TAXONOMY = "" #'HEP.RDF'
+#what tag is used for keywords
+CFG_BIBEDIT_KEYWORD_TAG = "" # '6531_a'
+#what label inside the RDF file contains the term
+CFG_BIBEDIT_KEYWORD_RDFLABEL = "" #'prefLabel'
