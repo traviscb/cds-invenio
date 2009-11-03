@@ -54,6 +54,7 @@ from invenio.config import \
      CFG_WEBSEARCH_FIELDS_CONVERT, \
      CFG_WEBSEARCH_NB_RECORDS_TO_SORT, \
      CFG_WEBSEARCH_SEARCH_CACHE_SIZE, \
+     CFG_WEBSEARCH_FIELDS_IDXPAIRS,\
      CFG_WEBSEARCH_USE_JSMATH_FOR_FORMATS, \
      CFG_WEBSEARCH_USE_ALEPH_SYSNOS, \
      CFG_WEBSEARCH_DEF_RECORDS_IN_GROUPS, \
@@ -73,6 +74,7 @@ from invenio.bibrank_record_sorter import get_bibrank_methods, rank_records, is_
 from invenio.bibrank_downloads_similarity import register_page_view_event, calculate_reading_similarity_list
 from invenio.bibindex_engine_stemmer import stem
 from invenio.bibindex_engine_tokenizer import wash_author_name, author_name_requires_phrase_search
+from invenio.bibindex_engine import get_pairs_from_phrase
 from invenio.bibformat import format_record, format_records, get_output_format_content_type, create_excel
 from invenio.bibformat_config import CFG_BIBFORMAT_USE_OLD_BIBFORMAT
 from invenio.bibrank_downloads_grapher import create_download_history_graph_and_box
@@ -548,6 +550,21 @@ def get_words_from_pattern(pattern):
         if not words.has_key(word):
             words[word] = 1
     return words.keys()
+
+def get_pairs_from_pattern(pattern):
+    "Returns list of word pairs from pattern."
+    word_pairs = {}
+    words = string.split(pattern)
+    len_words = len(words)
+    if len_words == 1:#the pharase has only one word
+        return word_pairs.keys()
+    return get_pairs_from_phrase(pattern)
+    #for word_id in range(len(words)-1):
+    #    key = words[word_id] + " " + words[word_id + 1]
+    #    if not word_pairs.has_key(key):
+    #        word_pairs[key] = 1
+    #return word_pairs.keys()
+
 
 def create_basic_search_units(req, p, f, m=None, of='hb'):
     """Splits search pattern and search field into a list of independently searchable units.
@@ -1796,6 +1813,9 @@ def search_pattern(req=None, p=None, f=None, m=None, ap=0, of="id", verbose=0, l
             if re.search(r'[^a-zA-Z0-9\s\:]', bsu_p):
                 if bsu_p.startswith('"') and bsu_p.endswith('"'): # is it ACC query?
                     bsu_pn = re.sub(r'[^a-zA-Z0-9\s\:]+', "*", bsu_p)
+                elif bsu_p.startswith('%') and bsu_p.endswith('%'): # is it partial phrase query?
+                    bsu_pn = re.sub(r'[^a-zA-Z0-9\s\:]+', " ", bsu_p)
+                    bsu_m = 'w' #transform partial phrase query in word query
                 else: # it is WRD query
                     bsu_pn = re.sub(r'[^a-zA-Z0-9\s\:]+', " ", bsu_p)
                 if verbose and of.startswith('h') and req:
@@ -1958,15 +1978,25 @@ def search_unit(p, f=None, m=None):
     set = HitSet()
     if not p: # sanity checking
         return set
+<<<<<<< HEAD:modules/websearch/lib/search_engine.py
     if f == 'datecreated':
         set = search_unit_in_bibrec(p, p, 'c')
     elif f == 'datemodified':
         set = search_unit_in_bibrec(p, p, 'm')
+=======
+    if p.startswith('%') and p.endswith('%'):
+        #if we are doing partial phrase matching we should look in the idxpair tables
+        set = search_unit_in_idxpairs(p, f, m)
+>>>>>>> WebSearch: integrated idxPair:modules/websearch/lib/search_engine.py
     elif m == 'a' or m == 'r':
         # we are doing either phrase search or regexp search
         index_id = get_index_id_from_field(f)
         if index_id != 0:
-            set = search_unit_in_idxphrases(p, f, m)
+            if m == 'a' and ((f in CFG_WEBSEARCH_FIELDS_IDXPAIRS) or ('*' in CFG_WEBSEARCH_FIELDS_IDXPAIRS)):
+                #for exact match on the admin configured fields we are searching in the pair tables
+                set = search_unit_in_idxpairs(p, f, m)
+            else:
+                set = search_unit_in_idxphrases(p, f, m)
         else:
             set = search_unit_in_bibxxx(p, f, m)
     elif p.startswith("cited:"):
@@ -1976,6 +2006,40 @@ def search_unit(p, f=None, m=None):
         # we are doing bibwords search by default
         set = search_unit_in_bibwords(p, f)
     return set
+
+def search_unit_in_idxpairs(p, f, type):
+    """Searches for pair 'p' inside idxPAIR table for field 'f' and
+    returns hitset of recIDs found."""
+    result_set = HitSet()
+    #determine the idxPAIR table to read from
+    index_id = get_index_id_from_field(f)
+    if not index_id:
+        return HitSet()
+    idxpair_table = "idxPAIR%02dF" % index_id
+    query_addons = "= %s"
+    
+    if p.startswith("%") and p.endswith("%"):
+        word_pairs = get_pairs_from_pattern(p[1:-1])
+    else:
+        word_pairs = get_pairs_from_pattern(p)
+    if len(word_pairs) == 0:
+        return search_unit_in_bibwords(p, f)
+    
+    first_results = 1 # flag to know if it's the first set of results or not
+    for word_pair in word_pairs:
+        query_params = (word_pair, )
+        # perform search:
+        result = run_sql("SELECT term, hitlist FROM %s WHERE term %s"
+                     % (idxpair_table, query_addons), query_params)
+        if result and result[0] and result[0][1]:
+            hitset = HitSet(result[0][1])
+            # add the results:
+            if first_results == 1:
+                result_set.union_update(hitset)
+                first_results = 0
+            else:
+                result_set.intersection_update(hitset)
+    return result_set
 
 def search_unit_in_bibwords(word, f, decompress=zlib.decompress):
     """Searches for 'word' inside bibwordsX table for field 'f' and returns hitset of recIDs."""
@@ -2382,24 +2446,23 @@ def create_nearest_terms_box(urlargd, p, f, t='w', n=5, ln=CFG_SITE_LANG, intro_
                         argd[px] = string.replace(argd_px, p, term)
                         break
                 else:
-                    if string.find(argd_px, f+':'+p) > -1:
-                        argd[px] = string.replace(argd_px, f+':'+p, f+':'+term)
-                        break
-                    elif string.find(argd_px, f+':"'+p+'"') > -1:
-                        argd[px] = string.replace(argd_px, f+':"'+p+'"', f+':"'+term+'"')
-                        break
-
+                    if string.find(argd_px, f + ':') > -1:
+                        if string.find(argd_px, p) > -1:
+                            argd[fx] = f
+                            aux = string.replace(argd_px, f + ":", "")
+                            argd[px] = aux.replace(argd_px, p, term)
+                            break
         terminfo.append((term, hits, argd))
 
     intro = ""
     if intro_text_p: # add full leading introductory text
         if f:
             intro = _("Search term %(x_term)s inside index %(x_index)s did not match any record. Nearest terms in any collection are:") % \
-                     {'x_term': "<em>" + cgi.escape(p.startswith("%") and p.endswith("%") and p[1:-1] or p) + "</em>",
+                     {'x_term': "<em>" + cgi.escape(p) + "</em>",
                       'x_index': "<em>" + cgi.escape(get_field_i18nname(get_field_name(f) or f, ln, False)) + "</em>"}
         else:
             intro = _("Search term %s did not match any record. Nearest terms in any collection are:") % \
-                     ("<em>" + cgi.escape(p.startswith("%") and p.endswith("%") and p[1:-1] or p) + "</em>")
+                     ("<em>" + cgi.escape(p) + "</em>")
 
     return websearch_templates.tmpl_nearest_term_box(p=p, ln=ln, f=f, terminfo=terminfo,
                                                      intro=intro)
