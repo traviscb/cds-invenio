@@ -22,10 +22,14 @@ The BibRecord test suite.
 """
 
 import unittest
+import sys                             # stderr
 
 from invenio.config import CFG_TMPDIR
 from invenio import bibrecord, bibrecord_config
 from invenio.testutils import make_test_suite, run_test_suite
+
+def warn(msg):
+    sys.stderr.write("\n\tWARNING: " + msg + "...")
 
 class BibRecordSuccessTest(unittest.TestCase):
     """ bibrecord - demo file parsing test """
@@ -125,7 +129,8 @@ class BibRecordParsersTest(unittest.TestCase):
         try:
             import pyRXP
         except ImportError:
-            self.fail("SKIPPED: pyRXP not available, test skipped.")
+            warn("pyRXP not available, test skipped")
+            return
         record = bibrecord._create_record_rxp(self.xmltext)
         self.assertEqual(record, self.expected_record)
 
@@ -134,7 +139,8 @@ class BibRecordParsersTest(unittest.TestCase):
         try:
             import Ft.Xml.Domlette
         except ImportError:
-            self.fail("SKIPPED: 4suite not available, test skipped.")
+            warn("4suite not available, test skipped")
+            return
         record = bibrecord._create_record_4suite(self.xmltext)
         self.assertEqual(record, self.expected_record)
 
@@ -144,7 +150,8 @@ class BibRecordParsersTest(unittest.TestCase):
             import xml.dom.minidom
             import xml.parsers.expat
         except ImportError:
-            self.fail("SKIPPED: minidom not available, test skipped.")
+            warn("minidom not available, test skipped")
+            return
         record = bibrecord._create_record_minidom(self.xmltext)
         self.assertEqual(record, self.expected_record)
 
