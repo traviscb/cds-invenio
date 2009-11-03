@@ -778,7 +778,7 @@ def record_get_field_value(rec, tag, ind1=" ", ind2=" ", code=""):
     # Nothing was found
     return ""
 
-def record_get_field_values(rec, tag, ind1=" ", ind2=" ", code=""):
+def record_get_field_values(rec, tag, ind1=" ", ind2=" ", code="", positional=False):
     """Returns the list of (string) values for the specified field
     (tag, ind1, ind2, code) of the record (rec).
 
@@ -786,11 +786,17 @@ def record_get_field_values(rec, tag, ind1=" ", ind2=" ", code=""):
 
     Parameters (tag, ind1, ind2, code) can contain wildcard %.
 
+    If (positional) is True, the list returned has items in sorted order,
+    with field missing a particular subfield represented by None.
+    The default is False, in which item order in unspecified and only 
+    items found are in the returned list.
+
     @param rec: a record structure as returned by create_record()
     @param tag: a 3 characters long string
     @param ind1: a 1 character long string
     @param ind2: a 1 character long string
     @param code: a 1 character long string
+    @param positional: a boolean
     @return: a list of strings"""
     tmp = []
 

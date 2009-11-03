@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from invenio.search_engine import search_pattern, print_record
-from invenio.bibrecord import create_record, record_get_field_values
+from invenio.bibrecord import create_record, record_get_field_values, record_get_field_value
 
 
 def search_forward(l, s):
@@ -33,6 +33,7 @@ def suggestAffils(name):
     pauth_affils = [None] * item_count
     for i in range(item_count):
 
+        authors = record_get_field_value
         primary_authors = record_get_field_values(record_list[i], '100', '%', '%', '%')
 
         x = 2 * search_forward(primary_authors[::2], search_for)
@@ -48,6 +49,7 @@ def suggestAffils(name):
 
 
 if __name__ == "__main__":
+    """Exploratory test harness"""
 
     import sys
 
