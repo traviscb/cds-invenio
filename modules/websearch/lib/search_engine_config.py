@@ -35,3 +35,10 @@ class InvenioWebSearchUnknownCollectionError(Exception):
     def __str__(self):
         """String representation."""
         return repr(self.colname)
+
+class InvenioWebSearchQueryLimitReachedWarning(Exception):
+    """Exception raised when query limit reached."""
+    def __init__(self, res):
+        """Initialization."""
+        self.res = res
+        

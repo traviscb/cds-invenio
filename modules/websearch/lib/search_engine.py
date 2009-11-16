@@ -64,7 +64,7 @@ from invenio.config import \
      CFG_BIBFORMAT_HIDDEN_TAGS, \
      CFG_SITE_URL, \
      CFG_ACCESS_CONTROL_LEVEL_ACCOUNTS
-from invenio.search_engine_config import InvenioWebSearchUnknownCollectionError
+from invenio.search_engine_config import InvenioWebSearchUnknownCollectionError, InvenioWebSearchQueryLimitReachedWarning
 from invenio.bibrecord import create_record
 from invenio.bibrank_record_sorter import get_bibrank_methods, rank_records, is_method_valid
 from invenio.bibrank_downloads_similarity import register_page_view_event, calculate_reading_similarity_list
@@ -79,7 +79,7 @@ from invenio.access_control_config import VIEWRESTRCOLL, \
     CFG_ACC_GRANT_AUTHOR_RIGHTS_TO_EMAILS_IN_TAGS
 from invenio.websearchadminlib import get_detailed_page_tabs
 from invenio.intbitset import intbitset as HitSet
-from invenio.dbquery import DatabaseError
+from invenio.dbquery import DatabaseError, DbQueryLimitReachedWarning
 from invenio.access_control_engine import acc_authorize_action
 from invenio.errorlib import register_exception
 from invenio.textutils import encode_for_xml
@@ -92,7 +92,8 @@ from invenio.bibrank_citation_searcher import calculate_cited_by_list, \
     calculate_co_cited_with_list, get_records_with_num_cites, get_self_cited_by
 from invenio.bibrank_citation_grapher import create_citation_history_graph_and_box
 
-from invenio.dbquery import run_sql, run_sql_cached, get_table_update_time, Error
+from invenio.dbquery import run_sql, run_sql_cached, run_sql_with_limit, \
+                            get_table_update_time, Error
 from invenio.webuser import getUid, collect_user_info
 from invenio.webpage import pageheaderonly, pagefooteronly, create_error_box
 from invenio.messages import gettext_set_language
@@ -664,7 +665,6 @@ def create_basic_search_units(req, p, f, m=None, of='hb'):
                     pi = strip_accents(pi) # strip accents for 'w' mode, FIXME: delete when not needed
                     for pii in get_words_from_pattern(pi):
                         opfts.append([oi, pii, fi, 'w'])
-
     ## sanity check:
     for i in range(0, len(opfts)):
         try:
@@ -1437,7 +1437,7 @@ def wash_pattern(p):
     # get rid of unquoted wildcards after spaces:
     p = re_pattern_wildcards_after_spaces.sub("\\1", p)
     # get rid of extremely short words (1-3 letters with wildcards):
-    p = re_pattern_short_words.sub("\\1", p)
+    #p = re_pattern_short_words.sub("\\1", p)
     # replace back __SPACE__ by spaces:
     p = re_pattern_space.sub(" ", p)
     # replace special terms:
@@ -1745,7 +1745,12 @@ def search_pattern(req=None, p=None, f=None, m=None, ap=0, of="id", verbose=0, l
 
     for idx_unit in xrange(len(basic_search_units)):
         bsu_o, bsu_p, bsu_f, bsu_m = basic_search_units[idx_unit]
-        basic_search_unit_hitset = search_unit(bsu_p, bsu_f, bsu_m)
+        try:
+            basic_search_unit_hitset = search_unit(bsu_p, bsu_f, bsu_m)
+        except InvenioWebSearchQueryLimitReachedWarning, excp:
+            basic_search_unit_hitset = excp.res
+            if of.startswith("h"):
+                print_warning(req, "Search term too generic, displaying only partial results...")
         #check that the user is allowed to search with this tag..
         for htag in myhiddens:
             ltag = len(htag)
@@ -1756,7 +1761,6 @@ def search_pattern(req=None, p=None, f=None, m=None, ap=0, of="id", verbose=0, l
                 if verbose >= 9 and of.startswith("h"):
                     print_warning(req, "Pattern %s hitlist omitted since it queries a hidden tag in %s" %
                                   basic_search_unit_hitset, str(myhiddens))
-
         if verbose >= 9 and of.startswith("h"):
             print_warning(req, "Search stage 1: pattern %s gave hitlist %s" % (cgi.escape(bsu_p), basic_search_unit_hitset))
         if len(basic_search_unit_hitset) > 0 or \
@@ -1772,7 +1776,7 @@ def search_pattern(req=None, p=None, f=None, m=None, ap=0, of="id", verbose=0, l
         else:
             # stage 2-2: no hits found for this search unit, try to replace non-alphanumeric chars inside pattern:
             if re.search(r'[^a-zA-Z0-9\s\:]', bsu_p):
-                if bsu_p.startswith('"') and bsu_p.endswith('"'): # is it ACC query?
+                if bsu_m == 'a': # is it ACC query?
                     bsu_pn = re.sub(r'[^a-zA-Z0-9\s\:]+', "*", bsu_p)
                 else: # it is WRD query
                     bsu_pn = re.sub(r'[^a-zA-Z0-9\s\:]+', " ", bsu_p)
@@ -1955,6 +1959,7 @@ def search_unit_in_bibwords(word, f, decompress=zlib.decompress):
     """Searches for 'word' inside bibwordsX table for field 'f' and returns hitset of recIDs."""
     set = HitSet() # will hold output result set
     set_used = 0 # not-yet-used flag, to be able to circumvent set operations
+    limit_reached = 0 # flag for knowing if the query limit has been reached
     # deduce into which bibwordsX table we will search:
     stemming_language = get_index_stemming_language(get_index_id_from_field("anyfield"))
     bibwordsX = "idxWORD%02dF" % get_index_id_from_field("anyfield")
@@ -1977,8 +1982,12 @@ def search_unit_in_bibwords(word, f, decompress=zlib.decompress):
             word1 = lower_index_term(word1)
             word0 = stem(word0, stemming_language)
             word1 = stem(word1, stemming_language)
-        res = run_sql("SELECT term,hitlist FROM %s WHERE term BETWEEN %%s AND %%s" % bibwordsX,
+        try:
+            res = run_sql_with_limit("SELECT term,hitlist FROM %s WHERE term BETWEEN %%s AND %%s" % bibwordsX,
                       (wash_index_term(word0), wash_index_term(word1)))
+        except DbQueryLimitReachedWarning, excp:
+            res = excp.res
+            limit_reached = 1 # set the limit reached flag to true
     else:
         if f == 'journal':
             pass # FIXME: quick hack for the journal index
@@ -1993,8 +2002,12 @@ def search_unit_in_bibwords(word, f, decompress=zlib.decompress):
                 # FIXME: we can run a sanity check here for all indexes
                 res = ()
             else:
-                res = run_sql("SELECT term,hitlist FROM %s WHERE term LIKE %%s" % bibwordsX,
+                try:
+                    res = run_sql_with_limit("SELECT term,hitlist FROM %s WHERE term LIKE %%s" % bibwordsX,
                               (wash_index_term(word),))
+                except DbQueryLimitReachedWarning, excp:
+                    res = excp.res
+                    limit_reached = 1 # set the limit reached flag to true
         else:
             res = run_sql("SELECT term,hitlist FROM %s WHERE term=%%s" % bibwordsX,
                           (wash_index_term(word),))
@@ -2007,6 +2020,10 @@ def search_unit_in_bibwords(word, f, decompress=zlib.decompress):
         else:
             set = hitset_bibwrd
             set_used = 1
+    #check to see if the query limit was reached
+    if limit_reached:
+        #raise an exception, so we can print a nice message to the user
+        raise InvenioWebSearchQueryLimitReachedWarning(set)
     # okay, return result set:
     return set
 
@@ -2015,6 +2032,7 @@ def search_unit_in_idxphrases(p, f, type):
     The search type is defined by 'type' (e.g. equals to 'r' for a regexp search)."""
     set = HitSet() # will hold output result set
     set_used = 0 # not-yet-used flag, to be able to circumvent set operations
+    limit_reached = 0 # flag for knowing if the query limit has been reached
     # deduce in which idxPHRASE table we will search:
     idxphraseX = "idxPHRASE%02dF" % get_index_id_from_field("anyfield")
     if f:
@@ -2023,7 +2041,6 @@ def search_unit_in_idxphrases(p, f, type):
             idxphraseX = "idxPHRASE%02dF" % index_id
         else:
             return HitSet() # phrase index f does not exist
-
     # detect query type (exact phrase, partial phrase, regexp):
     if type == 'r':
         query_addons = "REGEXP %s"
@@ -2043,8 +2060,12 @@ def search_unit_in_idxphrases(p, f, type):
                 query_params = (ps[0],)
 
     # perform search:
-    res = run_sql("SELECT term,hitlist FROM %s WHERE term %s" % (idxphraseX, query_addons),
+    try:
+        res = run_sql_with_limit("SELECT term,hitlist FROM %s WHERE term %s" % (idxphraseX, query_addons),
                   query_params)
+    except DbQueryLimitReachedWarning, excp:
+        res = excp.res
+        limit_reached = 1 # set the limit reached flag to true
     # fill the result set:
     for word, hitlist in res:
         hitset_bibphrase = HitSet(hitlist)
@@ -2054,6 +2075,10 @@ def search_unit_in_idxphrases(p, f, type):
         else:
             set = hitset_bibphrase
             set_used = 1
+    #check to see if the query limit was reached
+    if limit_reached:
+        #raise an exception, so we can print a nice message to the user
+        raise InvenioWebSearchQueryLimitReachedWarning(set)
     # okay, return result set:
     return set
 
@@ -2064,8 +2089,8 @@ def search_unit_in_bibxxx(p, f, type):
     # FIXME: quick hack for the journal index
     if f == 'journal':
         return search_unit_in_bibwords(p, f)
-
     p_orig = p # saving for eventual future 'no match' reporting
+    limit_reached = 0 # flag for knowing if the query limit has been reached
     query_addons = "" # will hold additional SQL code for the query
     query_params = () # will hold parameters for the query (their number may vary depending on TYPE argument)
     # wash arguments:
@@ -2108,8 +2133,12 @@ def search_unit_in_bibxxx(p, f, type):
         bibx = "bibrec_bib%d%dx" % (digit1, digit2)
         # construct and run query:
         if t == "001":
-            res = run_sql("SELECT id FROM bibrec WHERE id %s" % query_addons,
+            try:
+                res = run_sql_with_limit("SELECT id FROM bibrec WHERE id %s" % query_addons,
                           query_params)
+            except DbQueryLimitReachedWarning, excp:
+                res = excp.res
+                limit_reached = 1 # set the limit reached flag to true
         else:
             query = "SELECT bibx.id_bibrec FROM %s AS bx LEFT JOIN %s AS bibx ON bx.id=bibx.id_bibxxx WHERE bx.value %s" % \
                     (bx, bibx, query_addons)
@@ -2117,11 +2146,19 @@ def search_unit_in_bibxxx(p, f, type):
                 # wildcard query, or only the beginning of field 't'
                 # is defined, so add wildcard character:
                 query += " AND bx.tag LIKE %s"
-                res = run_sql(query, query_params + (t + '%',))
+                try:
+                    res = run_sql_with_limit(query, query_params + (t + '%',))
+                except DbQueryLimitReachedWarning, excp:
+                    res = excp.res
+                    limit_reached = 1 # set the limit reached flag to true
             else:
                 # exact query for 't':
                 query += " AND bx.tag=%s"
-                res = run_sql(query, query_params + (t,))
+                try:
+                    res = run_sql_with_limit(query, query_params + (t,))
+                except DbQueryLimitReachedWarning, excp:
+                    res = excp.res
+                    limit_reached = 1 # set the limit reached flag to true
         # fill the result set:
         for id_bibrec in res:
             if id_bibrec[0]:
@@ -2130,6 +2167,10 @@ def search_unit_in_bibxxx(p, f, type):
     nb_hits = len(l)
     # okay, return result set:
     set = HitSet(l)
+    #check to see if the query limit was reached
+    if limit_reached:
+        #raise an exception, so we can print a nice message to the user
+        raise InvenioWebSearchQueryLimitReachedWarning(set)
     return set
 
 def search_unit_in_bibrec(datetext1, datetext2, type='c'):
