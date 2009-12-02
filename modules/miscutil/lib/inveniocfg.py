@@ -62,6 +62,12 @@ Options to help the work:
    --get <some-opt>         get value of a given option from conf files
    --conf-dir </some/path>  path to directory where invenio*.conf files are [optional]
    --detect-system-details  print system details such as Apache/Python/MySQL versions
+
+Options to assist in operations:
+   --start-admin-jobs       create the standard jobs for administration
+
+
+
 """
 
 __revision__ = "$Id$"
@@ -1083,6 +1089,42 @@ def cli_cmd_detect_system_details(conf):
         print "* ERROR: cannot import dbquery"
     print ">>> System details detected successfully."
 
+def cli_cmd_start_admin_jobs(conf):
+    """Start the typical admin jobs, as explained in HOWTO Run."""
+
+    if not conf.get("Invenio", "CFG_SITE_SECURE_URL"):
+        conf.set("Invenio", "CFG_SITE_SECURE_URL",
+                 conf.get("Invenio", "CFG_SITE_URL"))
+    print ">>> Going to start admin jobs see \n %s/admin/help/howto-run \nfor more details" % conf.get('Invenio', 'CFG_SITE_SECURE_URL')
+
+    prefix = conf.get('Invenio', 'CFG_PREFIX')
+    flush = conf.get('Invenio', 'CFG_MISCUTIL_ADMIN_TASK_FLUSH')
+    sleep = conf.get('Invenio', 'CFG_MISCUTIL_ADMIN_TASK_SLEEP')
+    format = conf.get('Invenio', 'CFG_MISCUTIL_DEFAULT_FORMAT')
+    verbose = conf.get('Invenio', 'CFG_MISCUTIL_ADMIN_TASK_VERBOSITY')
+    user = conf.get('Invenio', 'CFG_BIBSCHED_PROCESS_USER')
+    if user == '':
+        user = 'apache'
+
+    for cmd in ["%s/bin/bibindex -f%s -s%s" % (prefix,
+                                                  flush,
+                                                  sleep),
+                "%s/bin/bibreformat -o%s -s%s" % (prefix,
+                                                  format,
+                                                  sleep),
+                "%s/bin/bibrank -f%s -s%s" % (prefix,
+                                              flush,
+                                              sleep),
+                "%s/bin/webcoll -v%s -s%s" % (prefix,
+                                              verbose,
+                                              sleep),
+                ]:
+        cmd = "sudo -u %s %s -u admin" % (user,cmd)
+        if os.system(cmd):
+            print "ERROR: failed execution of", cmd
+            sys.exit(1)
+
+
 def main():
     """Main entry point."""
     conf = ConfigParser()
@@ -1217,6 +1259,9 @@ def main():
                 done = True
             elif opt == '--reset-recstruct-cache':
                 cli_cmd_reset_recstruct_cache(conf)
+                done = True
+            elif opt == '--start-admin-jobs':
+                cli_cmd_start_admin_jobs(conf)
                 done = True
             elif opt == '--create-apache-conf':
                 cli_cmd_create_apache_conf(conf)
