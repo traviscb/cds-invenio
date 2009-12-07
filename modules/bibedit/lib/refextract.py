@@ -106,7 +106,13 @@ except ImportError:
         s = string.replace(s, '<', '&lt;')
         return s
 
-cli_opts = {}
+cli_opts = {'treat_as_raw_section' : 0,
+            'output_raw'           : 0,
+            'verbosity'            : 0,
+            'xmlfile'              : 0,
+            'dictfile'             : 0,
+            'authors'              : 0,
+            'first_author'         : ''}
 
 def massage_arxiv_reportnumber(report_number):
     """arXiv report numbers need some massaging
