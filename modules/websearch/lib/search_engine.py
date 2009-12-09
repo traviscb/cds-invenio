@@ -1745,6 +1745,11 @@ def search_pattern(req=None, p=None, f=None, m=None, ap=0, of="id", verbose=0, l
 
     for idx_unit in xrange(len(basic_search_units)):
         bsu_o, bsu_p, bsu_f, bsu_m = basic_search_units[idx_unit]
+        if req is None:
+            if bsu_m:
+                bsu_m += "_NOLIMIT_"
+            else:
+                bsu_m = "_NOLIMIT_"
         try:
             basic_search_unit_hitset = search_unit(bsu_p, bsu_f, bsu_m)
         except InvenioWebSearchQueryLimitReachedWarning, excp:
@@ -1940,7 +1945,7 @@ def search_unit(p, f=None, m=None):
     set = HitSet()
     if not p: # sanity checking
         return set
-    if m == 'a' or m == 'r':
+    if m and (m.startswith('a') or m.startswith('r')):
         # we are doing either phrase search or regexp search
         index_id = get_index_id_from_field(f)
         if index_id != 0:
@@ -1952,14 +1957,17 @@ def search_unit(p, f=None, m=None):
         set = search_unit_by_times_cited(p[6:])
     else:
         # we are doing bibwords search by default
-        set = search_unit_in_bibwords(p, f)
+        set = search_unit_in_bibwords(p, f, m)
     return set
 
-def search_unit_in_bibwords(word, f, decompress=zlib.decompress):
+def search_unit_in_bibwords(word, f, m=None, decompress=zlib.decompress):
     """Searches for 'word' inside bibwordsX table for field 'f' and returns hitset of recIDs."""
     set = HitSet() # will hold output result set
     set_used = 0 # not-yet-used flag, to be able to circumvent set operations
     limit_reached = 0 # flag for knowing if the query limit has been reached
+    use_limit = 1 #flag to know if the query should be executed with limit or no; by default we should use limits
+    if m and m.endswith('_NOLIMIT_'):
+        use_limit = 0
     # deduce into which bibwordsX table we will search:
     stemming_language = get_index_stemming_language(get_index_id_from_field("anyfield"))
     bibwordsX = "idxWORD%02dF" % get_index_id_from_field("anyfield")
@@ -1982,12 +1990,16 @@ def search_unit_in_bibwords(word, f, decompress=zlib.decompress):
             word1 = lower_index_term(word1)
             word0 = stem(word0, stemming_language)
             word1 = stem(word1, stemming_language)
-        try:
-            res = run_sql_with_limit("SELECT term,hitlist FROM %s WHERE term BETWEEN %%s AND %%s" % bibwordsX,
+        if not use_limit:
+            res = run_sql("SELECT term,hitlist FROM %s WHERE term BETWEEN %%s AND %%s" % bibwordsX,
                       (wash_index_term(word0), wash_index_term(word1)))
-        except DbQueryLimitReachedWarning, excp:
-            res = excp.res
-            limit_reached = 1 # set the limit reached flag to true
+        else:
+            try:
+                res = run_sql_with_limit("SELECT term,hitlist FROM %s WHERE term BETWEEN %%s AND %%s" % bibwordsX,
+                          (wash_index_term(word0), wash_index_term(word1)))
+            except DbQueryLimitReachedWarning, excp:
+                res = excp.res
+                limit_reached = 1 # set the limit reached flag to true
     else:
         if f == 'journal':
             pass # FIXME: quick hack for the journal index
@@ -2002,12 +2014,16 @@ def search_unit_in_bibwords(word, f, decompress=zlib.decompress):
                 # FIXME: we can run a sanity check here for all indexes
                 res = ()
             else:
-                try:
-                    res = run_sql_with_limit("SELECT term,hitlist FROM %s WHERE term LIKE %%s" % bibwordsX,
+                if not use_limit:
+                    res = run_sql("SELECT term,hitlist FROM %s WHERE term LIKE %%s" % bibwordsX,
                               (wash_index_term(word),))
-                except DbQueryLimitReachedWarning, excp:
-                    res = excp.res
-                    limit_reached = 1 # set the limit reached flag to true
+                else:
+                    try:
+                        res = run_sql_with_limit("SELECT term,hitlist FROM %s WHERE term LIKE %%s" % bibwordsX,
+                                  (wash_index_term(word),))
+                    except DbQueryLimitReachedWarning, excp:
+                        res = excp.res
+                        limit_reached = 1 # set the limit reached flag to true
         else:
             res = run_sql("SELECT term,hitlist FROM %s WHERE term=%%s" % bibwordsX,
                           (wash_index_term(word),))
@@ -2033,6 +2049,10 @@ def search_unit_in_idxphrases(p, f, type):
     set = HitSet() # will hold output result set
     set_used = 0 # not-yet-used flag, to be able to circumvent set operations
     limit_reached = 0 # flag for knowing if the query limit has been reached
+    use_limit = 1 #flag to know if the query should be executed with limit or no; by default we should use limits
+    if type and type.endswith('_NOLIMIT_'):
+        use_limit = 0
+        type = string.replace(type,'_NOLIMIT_', '')
     # deduce in which idxPHRASE table we will search:
     idxphraseX = "idxPHRASE%02dF" % get_index_id_from_field("anyfield")
     if f:
@@ -2060,12 +2080,15 @@ def search_unit_in_idxphrases(p, f, type):
                 query_params = (ps[0],)
 
     # perform search:
-    try:
-        res = run_sql_with_limit("SELECT term,hitlist FROM %s WHERE term %s" % (idxphraseX, query_addons),
-                  query_params)
-    except DbQueryLimitReachedWarning, excp:
-        res = excp.res
-        limit_reached = 1 # set the limit reached flag to true
+    if not use_limit:
+        res = run_sql("SELECT term,hitlist FROM %s WHERE term %s" % (idxphraseX, query_addons), query_params)
+    else:
+        try:
+            res = run_sql_with_limit("SELECT term,hitlist FROM %s WHERE term %s" % (idxphraseX, query_addons),
+                      query_params)
+        except DbQueryLimitReachedWarning, excp:
+            res = excp.res
+            limit_reached = 1 # set the limit reached flag to true
     # fill the result set:
     for word, hitlist in res:
         hitset_bibphrase = HitSet(hitlist)
@@ -2091,6 +2114,10 @@ def search_unit_in_bibxxx(p, f, type):
         return search_unit_in_bibwords(p, f)
     p_orig = p # saving for eventual future 'no match' reporting
     limit_reached = 0 # flag for knowing if the query limit has been reached
+    use_limit = 1 #flag to know if the query should be executed with limit or no; by default we should use limits
+    if type and type.endswith('_NOLIMIT_'):
+        use_limit = 0
+        type = string.replace(type,'_NOLIMIT_', '')
     query_addons = "" # will hold additional SQL code for the query
     query_params = () # will hold parameters for the query (their number may vary depending on TYPE argument)
     # wash arguments:
@@ -2133,12 +2160,15 @@ def search_unit_in_bibxxx(p, f, type):
         bibx = "bibrec_bib%d%dx" % (digit1, digit2)
         # construct and run query:
         if t == "001":
-            try:
-                res = run_sql_with_limit("SELECT id FROM bibrec WHERE id %s" % query_addons,
-                          query_params)
-            except DbQueryLimitReachedWarning, excp:
-                res = excp.res
-                limit_reached = 1 # set the limit reached flag to true
+            if not use_limit:
+                res = run_sql("SELECT id FROM bibrec WHERE id %s" % query_addons, query_params)
+            else:
+                try:
+                    res = run_sql_with_limit("SELECT id FROM bibrec WHERE id %s" % query_addons,
+                              query_params)
+                except DbQueryLimitReachedWarning, excp:
+                    res = excp.res
+                    limit_reached = 1 # set the limit reached flag to true
         else:
             query = "SELECT bibx.id_bibrec FROM %s AS bx LEFT JOIN %s AS bibx ON bx.id=bibx.id_bibxxx WHERE bx.value %s" % \
                     (bx, bibx, query_addons)
@@ -2146,19 +2176,25 @@ def search_unit_in_bibxxx(p, f, type):
                 # wildcard query, or only the beginning of field 't'
                 # is defined, so add wildcard character:
                 query += " AND bx.tag LIKE %s"
-                try:
-                    res = run_sql_with_limit(query, query_params + (t + '%',))
-                except DbQueryLimitReachedWarning, excp:
-                    res = excp.res
-                    limit_reached = 1 # set the limit reached flag to true
+                if not use_limit:
+                    res = run_sql(query, query_params + (t + '%',))
+                else:
+                    try:
+                        res = run_sql_with_limit(query, query_params + (t + '%',))
+                    except DbQueryLimitReachedWarning, excp:
+                        res = excp.res
+                        limit_reached = 1 # set the limit reached flag to true
             else:
                 # exact query for 't':
                 query += " AND bx.tag=%s"
-                try:
-                    res = run_sql_with_limit(query, query_params + (t,))
-                except DbQueryLimitReachedWarning, excp:
-                    res = excp.res
-                    limit_reached = 1 # set the limit reached flag to true
+                if not use_limit:
+                    res = run_sql(query, query_params + (t,))
+                else:
+                    try:
+                        res = run_sql_with_limit(query, query_params + (t,))
+                    except DbQueryLimitReachedWarning, excp:
+                        res = excp.res
+                        limit_reached = 1 # set the limit reached flag to true
         # fill the result set:
         for id_bibrec in res:
             if id_bibrec[0]:
