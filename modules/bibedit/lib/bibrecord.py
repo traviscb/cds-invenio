@@ -797,7 +797,9 @@ def record_get_field_values(rec, tag, ind1=" ", ind2=" ", code=""):
 
     if '%' in tag:
         # Wild card in tag. Must find all corresponding tags and fields
-        tags = sorted([k for k in rec if _tag_matches_pattern(k, tag)])
+        #tags = sorted([k for k in rec if _tag_matches_pattern(k, tag)])
+        tags = [k for k in rec if _tag_matches_pattern(k, tag)]
+	tags.sort()
     else:
         tags = [tag]
 
