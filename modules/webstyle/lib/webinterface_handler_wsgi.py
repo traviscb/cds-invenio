@@ -36,9 +36,9 @@ if __name__ != "__main__":
 from invenio.webinterface_layout import invenio_handler
 from invenio.webinterface_handler_wsgi_utils import table, FieldStorage, \
     HTTP_STATUS_MAP, SERVER_RETURN, OK, DONE, \
-    HTTP_NOT_FOUND
+    HTTP_NOT_FOUND, HTTP_INTERNAL_SERVER_ERROR
 from invenio.config import CFG_WEBDIR, CFG_SITE_LANG, \
-    CFG_WEBSTYLE_HTTP_STATUS_ALERT_LIST
+    CFG_WEBSTYLE_HTTP_STATUS_ALERT_LIST, CFG_DEVEL_SITE
 from invenio.errorlib import register_exception
 
 ## Static files are usually handled directly by the webserver (e.g. Apache)
@@ -130,7 +130,14 @@ class SimulatedModPythonRequest(object):
         self.send_http_header()
         if self.__buffer:
             self.__bytes_sent += len(self.__buffer)
-            self.__write(self.__buffer)
+            try:
+                self.__write(self.__buffer)
+            except IOError, err:
+                if "failed to write data" in str(err) or "client connection closed" in str(err):
+                    ## Let's just log this exception without alerting the admin:
+                    register_exception(req=self)
+                else:
+                    raise
             self.__buffer = ''
 
     def set_content_type(self, content_type):
@@ -210,8 +217,12 @@ class SimulatedModPythonRequest(object):
                         self.__bytes_sent += the_len
                         self.__write(chunk[:the_len])
                         break
-        except Exception, err:
-            raise IOError(str(err))
+        except IOError, err:
+            if "failed to write data" in str(err) or "client connection closed" in str(err):
+                ## Let's just log this exception without alerting the admin:
+                register_exception(req=self)
+            else:
+                raise
         return self.__bytes_sent
 
     def set_content_length(self, content_length):
@@ -323,7 +334,6 @@ def application(environ, start_response):
     Entry point for wsgi.
     """
     ## Needed for mod_wsgi, see: <http://code.google.com/p/modwsgi/wiki/ApplicationIssues>
-    setup_testing_defaults(environ)
     req = SimulatedModPythonRequest(environ, start_response)
     #print 'Starting mod_python simulation'
     try:
@@ -356,6 +366,7 @@ def application(environ, start_response):
                 req.flush()
         except Exception:
             register_exception(req=req, alert_admin=True)
+            req.status = HTTP_INTERNAL_SERVER_ERROR
             req.headers_out['content-type'] = 'text/html'
             start_response(req.get_wsgi_status(), req.get_low_level_headers(), sys.exc_info())
             return generate_error_page(req)
@@ -414,7 +425,7 @@ def mp_legacy_publisher(req, possible_module, possible_handler):
     the_module = open(possible_module).read()
     module_globals = {}
     exec(the_module, module_globals)
-    if possible_handler in module_globals:
+    if possible_handler in module_globals and callable(module_globals[possible_handler]):
         from invenio.webinterface_handler import _check_result
         ## the req.form must be casted to dict because of Python 2.4 and earlier
         ## otherwise any object exposing the mapping interface can be
@@ -422,14 +433,15 @@ def mp_legacy_publisher(req, possible_module, possible_handler):
         try:
             return _check_result(req, module_globals[possible_handler](req, **dict(req.form)))
         except TypeError, err:
-            if ("%s() got an unexpected keyword argument" % possible_handler) in str(err):
-                register_exception(req=req, prefix="Wrong GET parameter set in calling a legacy publisher handler", alert_admin=True)
+            if ("%s() got an unexpected keyword argument" % possible_handler) in str(err) or ('%s() takes at least' % possible_handler) in str(err):
                 import inspect
-                expected_args = inspect.getargspec(module_globals[possible_handler]).args
+                expected_args = inspect.getargspec(module_globals[possible_handler])[0]
+                register_exception(req=req, prefix="Wrong GET parameter set in calling a legacy publisher handler for %s: expected_args=%s, found_args=%s" % (possible_handler, repr(expected_args), repr(req.form.keys())), alert_admin=CFG_DEVEL_SITE)
                 cleaned_form = {}
                 for arg in expected_args:
-                    if arg != 'req' and arg in req.form: # Just in case of malicious usage!
-                        cleaned_form[arg] = req.form[arg]
+                    if arg == 'req':
+                        continue
+                    cleaned_form[arg] = req.form.get(arg, None)
                 return _check_result(req, module_globals[possible_handler](req, **cleaned_form))
             else:
                 raise
@@ -464,7 +476,7 @@ def wsgi_handler_test(port=80):
     CFG_WSGI_SERVE_STATIC_FILES = True
     check_wsgiref_testing_feasability()
     validator_app = validator(application)
-    httpd = make_server('', port, application)
+    httpd = make_server('', port, validator_app)
     print "Serving on port %s..." % port
     httpd.serve_forever()
 

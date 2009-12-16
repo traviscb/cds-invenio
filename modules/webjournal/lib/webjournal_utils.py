@@ -234,12 +234,18 @@ def get_order_dict_from_recid_list(recids, journal_name, issue_number,
 
     # Append records without order at the end of the list
     if records_without_defined_order:
-        ordered_records[max(ordered_records.keys()) + 1] = records_without_defined_order
+        if ordered_records:
+            ordered_records[max(ordered_records.keys()) + 1] = records_without_defined_order
+        else:
+            ordered_records[1] = records_without_defined_order
 
     # Append new records without order at the end of the list of new
     # records
     if new_records_without_defined_order:
-        ordered_new_records[max(ordered_new_records.keys()) + 1] = new_records_without_defined_order
+        if ordered_new_records:
+            ordered_new_records[max(ordered_new_records.keys()) + 1] = new_records_without_defined_order
+        else:
+            ordered_new_records[1] = new_records_without_defined_order
 
     # Append new records at the beginning of the list of 'old'
     # records. To do so, use negative integers
@@ -983,7 +989,7 @@ def datetime_to_issue(issue_datetime, journal_name):
                         AND id_jrnJOURNAL = %s
                    ORDER BY date_released DESC LIMIT 1""",
                   (issue_datetime, journal_id))
-    if res:
+    if res and res[0][1]:
         issue_number = res[0][0]
         issue_release_date = res[0][1]
 
@@ -997,7 +1003,7 @@ def datetime_to_issue(issue_datetime, journal_name):
         # of articles that have been imported in the system but never
         # considered as 'released' in the database. So we should still
         # try to approximate/match an issue:
-        if round(issue_day_lifetime) == 7:
+        if round(issue_day_lifetime) in [6, 7, 8]:
             # Weekly issues. We can use this information to better
             # match the issue number
             issue_nb = int(issue_datetime.strftime('%W')) # = week number
@@ -1006,7 +1012,7 @@ def datetime_to_issue(issue_datetime, journal_name):
             # divide by the lifetime of an issue: we get the
             # approximate issue_number
             issue_nb = math.ceil((int(issue_datetime.strftime('%j')) / issue_day_lifetime))
-        issue_number = ("%0" + str(nb_issues_per_year)+ "i/%i") % (issue_nb, issue_datetime.year)
+        issue_number = ("%0" + str(len(str(nb_issues_per_year)))+ "i/%i") % (issue_nb, issue_datetime.year)
         # Now check if this issue exists in the system for this
         # journal
         if not get_journal_categories(journal_name, issue_number):

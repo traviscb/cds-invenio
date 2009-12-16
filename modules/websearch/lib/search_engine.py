@@ -27,6 +27,7 @@ __revision__ = "$Id$"
 
 ## import general modules:
 import cgi
+import cStringIO
 import copy
 import string
 import os
@@ -676,7 +677,7 @@ def page_start(req, of, cc, aas, ln, uid, title_message=None,
     "Start page according to given output format."
     _ = gettext_set_language(ln)
 
-    if not req:
+    if not req or isinstance(req, cStringIO.OutputType):
         return # we were called from CLI
 
     if not title_message:
@@ -788,7 +789,7 @@ def page_end(req, of="hb", ln=CFG_SITE_LANG):
     if of.startswith('h'):
         req.write(websearch_templates.tmpl_search_pageend(ln = ln)) # pagebody end
         req.write(pagefooteronly(lastupdated=__lastupdated__, language=ln, req=req))
-    return "\n"
+    return
 
 def create_page_title_search_pattern_info(p, p1, p2, p3):
     """Create the search pattern bit for the page <title> web page
@@ -916,10 +917,14 @@ def create_search_box(cc, colls, p, f, rg, sf, so, sp, rm, of, ot, aas,
     # show collections in the search box? (not if there is only one
     # collection defined, and not if we are in light search)
     show_colls = True
+    show_title = True
     if len(collection_reclist_cache.cache.keys()) == 1 or \
            aas == -1:
         show_colls = False
+        show_title = False
 
+    if cc == CFG_SITE_NAME:
+        show_title = False
 
     return websearch_templates.tmpl_search_box(
              ln = ln,
@@ -959,6 +964,7 @@ def create_search_box(cc, colls, p, f, rg, sf, so, sp, rm, of, ot, aas,
              jrec = jrec,
              ec = ec,
              show_colls = show_colls,
+             show_title = show_title,
            )
 
 def create_navtrail_links(cc=CFG_SITE_NAME, aas=0, ln=CFG_SITE_LANG, self_p=1, tab=''):
@@ -2882,7 +2888,10 @@ def print_records(req, recIDs, jrec=1, rg=10, format='hb', ot='', ln=CFG_SITE_LA
         return
 
     # get user_info (for formatting based on user)
-    user_info = collect_user_info(req)
+    if isinstance(req, cStringIO.OutputType):
+        user_info = {}
+    else:
+        user_info = collect_user_info(req)
 
     if len(recIDs):
         nb_found = len(recIDs)
@@ -3061,14 +3070,6 @@ def print_records(req, recIDs, jrec=1, rg=10, format='hb', ot='', ln=CFG_SITE_LA
                                                                                    tabs,
                                                                                    ln))
                         req.write(format_record(recIDs[irec], 'HDREF', ln=ln, user_info=user_info, verbose=verbose))
-                        req.write(webstyle_templates.detailed_record_container_bottom(recIDs[irec],
-                                                                                      tabs,
-                                                                                      ln))
-                    elif tab == 'holdings':
-                        req.write(webstyle_templates.detailed_record_container_top(recIDs[irec],
-                                                                                   tabs,
-                                                                                   ln))
-                        req.write(format_record(recIDs[irec], 'HDHOLD', ln=ln, user_info=user_info, verbose=verbose))
                         req.write(webstyle_templates.detailed_record_container_bottom(recIDs[irec],
                                                                                       tabs,
                                                                                       ln))
@@ -3600,45 +3601,6 @@ def log_query_info(action, p, f, colls, nb_records_found_total=-1):
         pass
     return
 
-def wash_url_argument(var, new_type):
-    """Wash list argument into 'new_type', that can be 'list',
-       'str', or 'int'.  Useful for washing mod_python passed
-       arguments, that are all lists of strings (URL args may be
-       multiple), but we sometimes want only to take the first value,
-       and sometimes to represent it as string or numerical value."""
-    out = []
-    if new_type == 'list':  # return lst
-        if type(var) is list:
-            out = var
-        else:
-            out = [var]
-    elif new_type == 'str':  # return str
-        if type(var) is list:
-            try:
-                out = "%s" % var[0]
-            except:
-                out = ""
-        elif type(var) is str:
-            out = var
-        else:
-            out = "%s" % var
-    elif new_type == 'int': # return int
-        if type(var) is list:
-            try:
-                out = string.atoi(var[0])
-            except:
-                out = 0
-        elif type(var) is int:
-            out = var
-        elif type(var) is str:
-            try:
-                out = string.atoi(var)
-            except:
-                out = 0
-        else:
-            out = 0
-    return out
-
 ### CALLABLES
 
 def perform_request_search(req=None, cc=CFG_SITE_NAME, c=None, p="", f="", rg=10, sf="", so="d", sp="", rm="", of="id", ot="", aas=0,
@@ -3873,7 +3835,8 @@ def perform_request_search(req=None, cc=CFG_SITE_NAME, c=None, p="", f="", rg=10
         recidb = idb
     # TODO deduce passed search limiting criterias (if applicable)
     pl, pl_in_url = "", "" # no limits by default
-    if action != "browse" and req and req.args: # we do not want to add options while browsing or while calling via command-line
+    if action != "browse" and req and not isinstance(req, cStringIO.OutputType) \
+           and req.args: # we do not want to add options while browsing or while calling via command-line
         fieldargs = cgi.parse_qs(req.args)
         for fieldcode in get_fieldcodes():
             if fieldargs.has_key(fieldcode):
@@ -4551,7 +4514,6 @@ def profile(p="", f="", c=CFG_SITE_NAME):
 #print get_collection_reclist("Theses")
 #print log(sys.stdin)
 #print search_unit_in_bibrec('2002-12-01','2002-12-12')
-#print type(wash_url_argument("-1",'int'))
 #print get_nearest_terms_in_bibxxx("ellis", "author", 5, 5)
 #print call_bibformat(68, "HB_FLY")
 #print get_fieldvalues(10, "980__a")

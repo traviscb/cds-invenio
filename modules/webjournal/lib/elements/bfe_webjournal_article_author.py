@@ -55,8 +55,11 @@ def format(bfo, separator, display_email='yes',
 
     authors_list = []
     for author, email in zip(authors, emails):
+        if not author:
+            continue
         if email.strip() and display_email.lower() == 'yes' :
             authors_list.append(create_html_mailto(email,
+                                                   link_label=author,
                                                    subject=email_subject,
                                                    email_obfuscation_mode=email_obfuscation_mode_int))
         else:

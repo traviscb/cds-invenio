@@ -131,7 +131,8 @@ def convert_conf_option(option_name, option_value):
                        'CFG_BIBUPLOAD_CONTROLLED_PROVENANCE_TAGS',
                        'CFG_WEBSEARCH_ENABLED_SEARCH_INTERFACES',
                        'CFG_SITE_EMERGENCY_PHONE_NUMBERS',
-                       'CFG_WEBSTYLE_HTTP_STATUS_ALERT_LIST']:
+                       'CFG_WEBSTYLE_HTTP_STATUS_ALERT_LIST',
+                       'CFG_WEBSEARCH_RSS_I18N_COLLECTIONS']:
         out = "["
         for elem in option_value[1:-1].split(","):
             if elem:
@@ -709,9 +710,12 @@ def cli_cmd_create_apache_conf(conf):
     apache_conf_dir = conf.get("Invenio", 'CFG_ETCDIR') + \
                       os.sep + 'apache'
     ## Apache vhost conf file is distro specific, so analyze needs:
-    # Gentoo (and generic default):
+    # Gentoo (and generic defaults):
     listen_directive_needed = True
     ssl_pem_directive_needed = False
+    ssl_pem_path = '/etc/apache2/ssl/apache.pem'
+    ssl_crt_path = '/etc/apache2/ssl/server.crt'
+    ssl_key_path = '/etc/apache2/ssl/server.key'
     vhost_ip_address_needed = False
     wsgi_socket_directive_needed = False
     # Debian:
@@ -721,6 +725,8 @@ def cli_cmd_create_apache_conf(conf):
     # RHEL/SLC:
     if os.path.exists(os.path.sep + 'etc' + os.path.sep + 'redhat-release'):
         listen_directive_needed = False
+        ssl_crt_path = '/etc/pki/tls/certs/localhost.crt'
+        ssl_key_path = '/etc/pki/tls/private/localhost.key'
         vhost_ip_address_needed = True
         wsgi_socket_directive_needed = True
     ## okay, let's create Apache vhost files:
@@ -738,6 +744,7 @@ NameVirtualHost %(vhost_ip_address)s:80
 %(listen_directive)s
 %(wsgi_socket_directive)s
 WSGIRestrictStdout Off
+WSGIImportScript %(wsgidir)s/invenio.wsgi process-group=invenio application-group=%%{GLOBAL}
 <Files *.pyc>
    deny from all
 </Files>
@@ -763,15 +770,17 @@ WSGIRestrictStdout Off
         Alias /js/ %(webdir)s/js/
         Alias /export/ %(webdir)s/export/
         Alias /jsMath/ %(webdir)s/jsMath/
+        Alias /jsCalendar/ %(webdir)s/jsCalendar/
         Alias /fckeditor/ %(webdir)s/fckeditor/
         AliasMatch /sitemap-(.*) %(webdir)s/sitemap-$1
         Alias /robots.txt %(webdir)s/robots.txt
         Alias /favicon.ico %(webdir)s/favicon.ico
-        WSGIDaemonProcess invenio processes=5 threads=1 display-name=%%{GROUP}
+        WSGIDaemonProcess invenio processes=5 threads=1 display-name=%%{GROUP} inactivity-timeout=86400
         WSGIScriptAlias / %(wsgidir)s/invenio.wsgi
         WSGIPassAuthorization On
         <Directory %(wsgidir)s>
            WSGIProcessGroup invenio
+           WSGIApplicationGroup %%{GLOBAL}
            Options FollowSymLinks MultiViews
            AllowOverride None
            Order allow,deny
@@ -826,6 +835,7 @@ WSGIRestrictStdout Off
         Alias /js/ %(webdir)s/js/
         Alias /export/ %(webdir)s/export/
         Alias /jsMath/ %(webdir)s/jsMath/
+        Alias /jsCalendar/ %(webdir)s/jsCalendar/
         Alias /fckeditor/ %(webdir)s/fckeditor/
         AliasMatch /sitemap-(.*) %(webdir)s/sitemap-$1
         Alias /robots.txt %(webdir)s/robots.txt
@@ -834,6 +844,7 @@ WSGIRestrictStdout Off
         WSGIPassAuthorization On
         <Directory %(wsgidir)s>
            WSGIProcessGroup invenio
+           WSGIApplicationGroup %%{GLOBAL}
            Options FollowSymLinks MultiViews
            AllowOverride None
            Order allow,deny
@@ -850,14 +861,14 @@ WSGIRestrictStdout Off
        'vhost_ip_address': vhost_ip_address_needed and _detect_ip_address() or '*',
        'listen_directive' : listen_directive_needed and 'Listen 443' or '#Listen 443',
        'ssl_pem_directive': ssl_pem_directive_needed and \
-                            'SSLCertificateFile /etc/apache2/ssl/apache.pem' or \
-                            '#SSLCertificateFile /etc/apache2/ssl/apache.pem',
+                            'SSLCertificateFile %s' % ssl_pem_path or \
+                            '#SSLCertificateFile %s' % ssl_pem_path,
        'ssl_crt_directive': ssl_pem_directive_needed and \
-                            '#SSLCertificateFile /etc/apache2/ssl/server.crt' or \
-                            'SSLCertificateFile /etc/apache2/ssl/server.crt',
+                            '#SSLCertificateFile %s' % ssl_crt_path or \
+                            'SSLCertificateFile %s' % ssl_crt_path,
        'ssl_key_directive': ssl_pem_directive_needed and \
-                            '#SSLCertificateKeyFile /etc/apache2/ssl/server.key' or \
-                            'SSLCertificateKeyFile /etc/apache2/ssl/server.key',
+                            '#SSLCertificateKeyFile %s' % ssl_key_path or \
+                            'SSLCertificateKeyFile %s' % ssl_key_path,
        }
     # write HTTP vhost snippet:
     if os.path.exists(apache_vhost_file):

@@ -48,7 +48,7 @@ INSERT INTO collection VALUES (18,'Poetry','collection:POETRY',NULL,NULL);
 INSERT INTO collection VALUES (19,'Atlantis Times News','collection:ATLANTISTIMESNEWS',NULL,NULL);
 INSERT INTO collection VALUES (20,'Atlantis Times Arts','collection:ATLANTISTIMESARTS',NULL,NULL);
 INSERT INTO collection VALUES (21,'Atlantis Times Science','collection:ATLANTISTIMESSCIENCE',NULL,NULL);
-INSERT INTO collection VALUES (22,'Atlantis Times','',NULL,NULL);
+INSERT INTO collection VALUES (22,'Atlantis Times',NULL,NULL,NULL);
 
 INSERT INTO clsMETHOD VALUES (1,'HEP','http://cdsware.cern.ch/download/invenio-demo-site-files/HEP.rdf','High Energy Physics Taxonomy','0000-00-00 00:00:00');
 INSERT INTO clsMETHOD VALUES (2,'NASA-subjects','http://cdsware.cern.ch/download/invenio-demo-site-files/NASA-subjects.rdf','NASA Subjects','0000-00-00 00:00:00');
@@ -79,6 +79,8 @@ INSERT INTO collectionname VALUES (2,'zh_TW','ln','預印');
 INSERT INTO collectionname VALUES (2,'hu','ln','Preprintek');
 INSERT INTO collectionname VALUES (2,'af','ln','Pre-drukke');
 INSERT INTO collectionname VALUES (2,'gl','ln','Preprints');
+INSERT INTO collectionname VALUES (2,'ro','ln','Preprinturi');
+INSERT INTO collectionname VALUES (2,'rw','ln','Preprints');
 
 INSERT INTO collectionname VALUES (3,'en','ln','Books');
 INSERT INTO collectionname VALUES (3,'fr','ln','Livres');
@@ -103,6 +105,8 @@ INSERT INTO collectionname VALUES (3,'zh_TW','ln','書本');
 INSERT INTO collectionname VALUES (3,'hu','ln','Könyvek');
 INSERT INTO collectionname VALUES (3,'af','ln','Boeke');
 INSERT INTO collectionname VALUES (3,'gl','ln','Libros');
+INSERT INTO collectionname VALUES (3,'ro','ln','Cărţi');
+INSERT INTO collectionname VALUES (3,'rw','ln','Ibitabo');
 
 INSERT INTO collectionname VALUES (4,'en','ln','Theses');
 INSERT INTO collectionname VALUES (4,'fr','ln','Thèses');
@@ -127,6 +131,8 @@ INSERT INTO collectionname VALUES (4,'zh_TW','ln','論文');
 INSERT INTO collectionname VALUES (4,'hu','ln','Disszertációk');
 INSERT INTO collectionname VALUES (4,'af','ln','Tesise');
 INSERT INTO collectionname VALUES (4,'gl','ln','Teses');
+INSERT INTO collectionname VALUES (4,'ro','ln','Teze');
+INSERT INTO collectionname VALUES (4,'rw','ln','Igitabo ky\'ubushakashatsi'); -- '
 
 INSERT INTO collectionname VALUES (5,'en','ln','Reports');
 INSERT INTO collectionname VALUES (5,'fr','ln','Rapports');
@@ -151,6 +157,8 @@ INSERT INTO collectionname VALUES (5,'zh_TW','ln','報告');
 INSERT INTO collectionname VALUES (5,'hu','ln','Tanulmányok');
 INSERT INTO collectionname VALUES (5,'af','ln','Verslae');
 INSERT INTO collectionname VALUES (5,'gl','ln','Informes');
+INSERT INTO collectionname VALUES (5,'ro','ln','Rapoarte');
+INSERT INTO collectionname VALUES (5,'rw','ln','Raporo');
 
 INSERT INTO collectionname VALUES (6,'en','ln','Articles');
 INSERT INTO collectionname VALUES (6,'fr','ln','Articles');
@@ -175,6 +183,8 @@ INSERT INTO collectionname VALUES (6,'zh_TW','ln','文章');
 INSERT INTO collectionname VALUES (6,'hu','ln','Cikkek');
 INSERT INTO collectionname VALUES (6,'af','ln','Artikels');
 INSERT INTO collectionname VALUES (6,'gl','ln','Artigos');
+INSERT INTO collectionname VALUES (6,'ro','ln','Articole');
+INSERT INTO collectionname VALUES (6,'rw','ln','Ikinyamakuru ky\'ubushakashatsi'); -- '
 
 INSERT INTO collectionname VALUES (8,'en','ln','Pictures');
 INSERT INTO collectionname VALUES (8,'fr','ln','Photos');
@@ -199,6 +209,8 @@ INSERT INTO collectionname VALUES (8,'zh_TW','ln','圖片');
 INSERT INTO collectionname VALUES (8,'hu','ln','Képek');
 INSERT INTO collectionname VALUES (8,'af','ln','Prente');
 INSERT INTO collectionname VALUES (8,'gl','ln','Imaxes');
+INSERT INTO collectionname VALUES (8,'ro','ln','Poze');
+INSERT INTO collectionname VALUES (8,'rw','ln','Ifoto');
 
 INSERT INTO collectionname VALUES (9,'en','ln','CERN Divisions');
 INSERT INTO collectionname VALUES (9,'fr','ln','Divisions du CERN');
@@ -223,6 +235,8 @@ INSERT INTO collectionname VALUES (9,'zh_TW','ln','CERN 分類');
 INSERT INTO collectionname VALUES (9,'hu','ln','CERN részlegek');
 INSERT INTO collectionname VALUES (9,'af','ln','CERN Afdelings');
 INSERT INTO collectionname VALUES (9,'gl','ln','Divisións do CERN');
+INSERT INTO collectionname VALUES (9,'ro','ln','Divizii CERN');
+INSERT INTO collectionname VALUES (9,'rw','ln','Ishami ya CERN');
 
 INSERT INTO collectionname VALUES (10,'en','ln','CERN Experiments');
 INSERT INTO collectionname VALUES (10,'fr','ln','Expériences du CERN');
@@ -247,6 +261,8 @@ INSERT INTO collectionname VALUES (10,'zh_TW','ln','CERN 實驗');
 INSERT INTO collectionname VALUES (10,'hu','ln','CERN kísérletek');
 INSERT INTO collectionname VALUES (10,'af','ln','CERN Experimente');
 INSERT INTO collectionname VALUES (10,'gl','ln','Experimentos do CERN');
+INSERT INTO collectionname VALUES (10,'ro','ln','Experimente CERN');
+INSERT INTO collectionname VALUES (10,'rw','ln','Ubushakashatsi bwa CERN');
 
 INSERT INTO collectionname VALUES (11,'en','ln','Theoretical Physics (TH)');
 INSERT INTO collectionname VALUES (11,'fr','ln','Physique Théorique (TH)');
@@ -271,6 +287,8 @@ INSERT INTO collectionname VALUES (11,'zh_TW','ln','理論物理 (TH)');
 INSERT INTO collectionname VALUES (11,'hu','ln','Elméleti fizika (TH)');
 INSERT INTO collectionname VALUES (11,'af','ln','Teoretiese Fisika (TH)');
 INSERT INTO collectionname VALUES (11,'gl','ln','Física Teórica (TH)');
+INSERT INTO collectionname VALUES (11,'ro','ln','Fizică Teoretică (TH)');
+INSERT INTO collectionname VALUES (11,'rw','ln','Theoretical Physics (TH)');
 
 INSERT INTO collectionname VALUES (12,'en','ln','Experimental Physics (EP)');
 INSERT INTO collectionname VALUES (12,'fr','ln','Physique Expérimentale (EP)');
@@ -295,6 +313,8 @@ INSERT INTO collectionname VALUES (12,'zh_TW','ln','實驗物理 (EP)');
 INSERT INTO collectionname VALUES (12,'hu','ln','Kísérleti fizika (EP)');
 INSERT INTO collectionname VALUES (12,'af','ln','Eksperimentele Fisika (EP)');
 INSERT INTO collectionname VALUES (12,'gl','ln','Física Experimental (EP)');
+INSERT INTO collectionname VALUES (12,'ro','ln','Fizică Experimentală (EP)');
+INSERT INTO collectionname VALUES (12,'rw','ln','Experimental Physics (EP)');
 
 INSERT INTO collectionname VALUES (13,'en','ln','ISOLDE');
 INSERT INTO collectionname VALUES (13,'fr','ln','ISOLDE');
@@ -319,6 +339,8 @@ INSERT INTO collectionname VALUES (13,'zh_TW','ln','ISOLDE');
 INSERT INTO collectionname VALUES (13,'hu','ln','ISOLDE');
 INSERT INTO collectionname VALUES (13,'af','ln','ISOLDE');
 INSERT INTO collectionname VALUES (13,'gl','ln','ISOLDE');
+INSERT INTO collectionname VALUES (13,'ro','ln','ISOLDE');
+INSERT INTO collectionname VALUES (13,'rw','ln','ISOLDE');
 
 INSERT INTO collectionname VALUES (14,'en','ln','ALEPH');
 INSERT INTO collectionname VALUES (14,'fr','ln','ALEPH');
@@ -343,6 +365,8 @@ INSERT INTO collectionname VALUES (14,'zh_TW','ln','ALEPH');
 INSERT INTO collectionname VALUES (14,'hu','ln','ALEPH');
 INSERT INTO collectionname VALUES (14,'af','ln','ALEPH');
 INSERT INTO collectionname VALUES (14,'gl','ln','ALEPH');
+INSERT INTO collectionname VALUES (14,'ro','ln','ALEPH');
+INSERT INTO collectionname VALUES (14,'rw','ln','ALEPH');
 
 INSERT INTO collectionname VALUES (15,'en','ln','Articles & Preprints');
 INSERT INTO collectionname VALUES (15,'fr','ln','Articles et Prétirages');
@@ -367,6 +391,8 @@ INSERT INTO collectionname VALUES (15,'zh_TW','ln','文章和預印');
 INSERT INTO collectionname VALUES (15,'hu','ln','Cikkek és Preprintek');
 INSERT INTO collectionname VALUES (15,'af','ln','Artikels & Pre-drukke');
 INSERT INTO collectionname VALUES (15,'gl','ln','Artigos e Preprints');
+INSERT INTO collectionname VALUES (15,'ro','ln','Articole şi Preprinturi');
+INSERT INTO collectionname VALUES (15,'rw','ln','Ibinyamakuru');
 
 INSERT INTO collectionname VALUES (16,'en','ln','Books & Reports');
 INSERT INTO collectionname VALUES (16,'fr','ln','Livres et Rapports');
@@ -391,6 +417,8 @@ INSERT INTO collectionname VALUES (16,'zh_TW','ln','書本和報告');
 INSERT INTO collectionname VALUES (16,'hu','ln','Könyvek és tanulmányok');
 INSERT INTO collectionname VALUES (16,'af','ln','Boeke & Verslae');
 INSERT INTO collectionname VALUES (16,'gl','ln','Libros e Informes');
+INSERT INTO collectionname VALUES (16,'ro','ln','Cărţi şi Rapoarte');
+INSERT INTO collectionname VALUES (16,'rw','ln','Ibitabo & Raporo');
 
 INSERT INTO collectionname VALUES (17,'en','ln','Multimedia & Arts');
 INSERT INTO collectionname VALUES (17,'fr','ln','Multimédia et Arts');
@@ -415,6 +443,8 @@ INSERT INTO collectionname VALUES (17,'zh_TW','ln','多媒體和藝術');
 INSERT INTO collectionname VALUES (17,'hu','ln','Multimédia és képzőművészet');
 INSERT INTO collectionname VALUES (17,'af','ln','Multimedia & Kunste');
 INSERT INTO collectionname VALUES (17,'gl','ln','Multimedia e Arte');
+INSERT INTO collectionname VALUES (17,'ro','ln','Multimedia şi Arte');
+INSERT INTO collectionname VALUES (17,'rw','ln','Multimedia & Arts');
 
 INSERT INTO collectionname VALUES (18,'en','ln','Poetry');
 INSERT INTO collectionname VALUES (18,'fr','ln','Poésie');
@@ -439,6 +469,8 @@ INSERT INTO collectionname VALUES (18,'zh_TW','ln','詩歌');
 INSERT INTO collectionname VALUES (18,'hu','ln','Költészet');
 INSERT INTO collectionname VALUES (18,'af','ln','Poësie');
 INSERT INTO collectionname VALUES (18,'gl','ln','Poesía');
+INSERT INTO collectionname VALUES (18,'ro','ln','Poezie');
+INSERT INTO collectionname VALUES (18,'rw','ln','Umuvugo');
 
 INSERT INTO collectionname VALUES (19,'en','ln','Atlantis Times News');
 INSERT INTO collectionname VALUES (19,'fr','ln','Atlantis Times Actualités');
@@ -769,6 +801,10 @@ INSERT INTO collection_portalbox (id_collection,id_portalbox,ln,position,score) 
 INSERT INTO collection_portalbox (id_collection,id_portalbox,ln,position,score) VALUES (20,78,'en','rt',100);
 INSERT INTO collection_portalbox (id_collection,id_portalbox,ln,position,score) VALUES (21,78,'en','rt',100);
 INSERT INTO collection_portalbox (id_collection,id_portalbox,ln,position,score) VALUES (22,78,'en','rt',100);
+INSERT INTO collection_portalbox (id_collection,id_portalbox,ln,position,score) VALUES (1,79,'ro','rt',100);
+INSERT INTO collection_portalbox (id_collection,id_portalbox,ln,position,score) VALUES (1,80,'ro','rt',90);
+INSERT INTO collection_portalbox (id_collection,id_portalbox,ln,position,score) VALUES (1,81,'rw','rt',100);
+INSERT INTO collection_portalbox (id_collection,id_portalbox,ln,position,score) VALUES (1,82,'rw','rt',90);
 
 INSERT INTO example VALUES (1,'author search','author:"Ellis, J"');
 INSERT INTO example VALUES (2,'word search','quantum');
@@ -823,7 +859,7 @@ INSERT INTO oaiREPOSITORY VALUES (2,'CERN experimental papers','cern:experiment'
 INSERT INTO oaiREPOSITORY VALUES (3,'CERN theoretical papers','cern:theory','','','c=;p1=CERN;f1=reportnumber;m1=a;p2=TH;f2=division;m2=e;p3=;f3=;m3=;',NULL,'CERN','reportnumber','a','TH','division','e','','','');
 
 INSERT INTO portalbox VALUES (1,'ABOUT THIS SITE','Welcome to the demo site of the CDS Invenio, a free document server software coming from CERN.  Please feel free to explore all the features of this demo site to the full.');
-INSERT INTO portalbox VALUES (2,'SEE ALSO','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (2,'SEE ALSO','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (3,'ABOUT ARTICLES','The Articles collection contains all the papers published in scientific journals by our staff.  The collection starts from 1998.');
 INSERT INTO portalbox VALUES (4,'SEE ALSO','<a href=\"http://arXiv.org/\">arXiv.org</a><br /><a href=\"http://cds.cern.ch/\">CDS</a><br /><a href=\"www.chemweb.com\">ChemWeb</a><br /><a href=\"http://www.ams.org/mathscinet\">MathSciNet</a>');
 INSERT INTO portalbox VALUES (5,'ABOUT PREPRINTS','The Preprints collection contains not-yet-published papers and research results obtained at the institute.  The collection starts from 2001.');
@@ -847,25 +883,25 @@ INSERT INTO portalbox VALUES (22,'ABOUT BOOKS AND REPORTS','This collection grou
 INSERT INTO portalbox VALUES (23,'ABOUT MULTIMEDIA & OUTREACH','This collection groups together all multimedia- and outreach- oriented material.');
 INSERT INTO portalbox VALUES (24,'ABOUT POETRY','This collection presents poetry excerpts, mainly to demonstrate and test the treatment of various languages.<p>Vitrum edere possum; mihi non nocet.<br />Μπορώ να φάω σπασμένα γυαλιά χωρίς να πάθω τίποτα.<br />Pòdi manjar de veire, me nafrariá pas.<br />Ég get etið gler án þess að meiða mig.<br />Ic mæg glæs eotan ond hit ne hearmiað me.<br />ᛁᚳ᛫ᛗᚨᚷ᛫ᚷᛚᚨᛋ᛫ᛖᚩᛏᚪᚾ᛫ᚩᚾᛞ᛫ᚻᛁᛏ᛫ᚾᛖ᛫ᚻᛖᚪᚱᛗᛁᚪᚧ᛫ᛗᛖ᛬<br />⠊⠀⠉⠁⠝⠀⠑⠁⠞⠀⠛⠇⠁⠎⠎⠀⠁⠝⠙⠀⠊⠞⠀⠙⠕⠑⠎⠝⠞⠀⠓⠥⠗⠞⠀⠍⠑<br />Pot să mănânc sticlă și ea nu mă rănește.<br />Meg tudom enni az üveget, nem lesz tőle bajom.<br />Môžem jesť sklo. Nezraní ma.<br /><span dir="rtl" lang="he">אני יכול לאכול זכוכית וזה לא מזיק לי.</span><br /><span dir="rtl" lang="ji">איך קען עסן גלאָז און עס טוט מיר נישט װײ.</span><br /><span dir="RTL" lang=AR>أنا قادر على أكل الزجاج و هذا لا يؤلمني.</span><br />Я могу есть стекло, оно мне не вредит.<br />მინას ვჭამ და არა მტკივა.<br />Կրնամ ապակի ուտել և ինծի անհանգիստ չըներ։<br />मैं काँच खा सकता हूँ, मुझे उस से कोई पीडा नहीं होती.<br />काचं शक्नोम्यत्तुम् । नोपहिनस्ति माम् ॥<br />ฉันกินกระจกได้ แต่มันไม่ทำให้ฉันเจ็บ<br />Tôi có thể ăn thủy tinh mà không hại gì.<br /><span lang="zh">我能吞下玻璃而不伤身体。</span><br /><span lang=ja>私はガラスを食べられます。それは私を傷つけません。</span><br /><span lang=ko>나는 유리를 먹을 수 있어요. 그래도 아프지 않아요</span><br />(<a href="http://www.columbia.edu/kermit/utf8.html">http://www.columbia.edu/kermit/utf8.html</a>)');
 INSERT INTO portalbox VALUES (25,'À PROPOS DE CE SITE','Bienvenue sur le site de démonstration de CDS Invenio, un logiciel libre pour des serveurs des documents, venant du CERN.  Veuillez explorer les possibilités de ce site de démonstration de tous ses côtés.');
-INSERT INTO portalbox VALUES (26,'VOIR AUSSI','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (26,'VOIR AUSSI','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (27,'O TÝCHTO STRÁNKACH','Vitajte na demonštračných stránkach CDS Invenio, voľne dostupného softwaru pre dokumentové servery, pochádzajúceho z CERNu.  Prehliadnite si možnosti našeho demonštračného serveru podla ľubovôle.');
-INSERT INTO portalbox VALUES (28,'VIĎ TIEŽ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (28,'VIĎ TIEŽ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (29,'O TĚCHTO STRÁNKÁCH','Vítejte na demonstračních stránkách CDS Invenio, volně dostupného softwaru pro dokumentové servery, pocházejícího z CERNu.  Prohlédněte si možnosti našeho demonstračního serveru podle libosti.');
-INSERT INTO portalbox VALUES (30,'VIZ TÉŽ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (30,'VIZ TÉŽ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (31,'ÜBER DIESEN SEITEN','Willkommen Sie bei der Demo-Seite des CDS Invenio, des Dokument Management Systems Software aus CERN. Hier können Sie den System gleich und frei ausprobieren.');
-INSERT INTO portalbox VALUES (32,'SEHEN SIE AUCH','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (32,'SEHEN SIE AUCH','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (33,'ACERCA DE ESTAS PÁGINAS','Bienvenidos a las páginas de demostración de CDS Invenio, un software gratuito desarrollado por el CERN que permite crear un servidor de documentos. Le invitamos a explorar a fondo todas las funcionalidades ofrecidas por estas páginas de demostración.');
-INSERT INTO portalbox VALUES (34,'VEA TAMBIÉN','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (34,'VEA TAMBIÉN','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (35,'A PROPOSITO DI QUESTO SITO','Benvenuti nel sito demo di CDS Invenio, un software libero per server di documenti sviluppato al CERN. Vi invitiamo ad esplorare a fondo tutte le caratteristiche di questo sito demo.');
-INSERT INTO portalbox VALUES (36,'VEDI ANCHE','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (36,'VEDI ANCHE','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (37,'OM DENNE SIDEN','Velkommen til demosiden for CDS Invenio, en gratis dokumentserver fra CERN. Vennligst føl deg fri til å utforske alle mulighetene i denne demoen til det fulle.');
-INSERT INTO portalbox VALUES (38,'SE OGSÅ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (38,'SE OGSÅ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (39,'SOBRE ESTE SITE','Bem vindo ao site de demonstração do CDS Invenio, um servidor de documentos livre desenvolvido pelo CERN. Sinta-se à vontade para explorar plenamente todos os recursos deste site demonstração.');
-INSERT INTO portalbox VALUES (40,'VEJA TAMBÉM','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (40,'VEJA TAMBÉM','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (41,'ОБ ЭТОМ САЙТЕ','Добро пожаловать на наш демонстрационный сайт CDS Invenio. CDS Invenio -- свободная программа для серверов документов, разработанная в CERNе.  Пожалуйста пользуйтесь свободно этим сайтом.');
-INSERT INTO portalbox VALUES (42,'СМОТРИТЕ ТАКЖЕ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (42,'СМОТРИТЕ ТАКЖЕ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (43,'OM DENNA WEBBPLATS','Välkommen till demoinstallationen av CDS Invenio, en fri programvara för hantering av dokument, från CERN. Välkommen att undersöka alla funktioner i denna installation.');
-INSERT INTO portalbox VALUES (44,'SE ÄVEN','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (44,'SE ÄVEN','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (45,'SUBMIT PREPRINT','<a href=\"/submit?doctype=TEXT\">Submit a new preprint</a>');
 INSERT INTO portalbox VALUES (46,'SUBMIT BOOK','<a href=\"/submit?doctype=TEXT\">Submit a new book</a>');
 INSERT INTO portalbox VALUES (47,'SUBMIT THESIS','<a href=\"/submit?doctype=TEXT\">Submit a new thesis</a>');
@@ -876,30 +912,34 @@ INSERT INTO portalbox VALUES (51,'SUBMIT NEW DOCUMENT','<a href=\"/submit?doctyp
 INSERT INTO portalbox VALUES (52,'SUBMIT NEW DOCUMENT','<a href=\"/submit?doctype=TEXT\">Submit a new book</a><br /><a href=\"/submit?doctype=TEXT\">Submit a new thesis</a><br /><a href=\"/submit?doctype=TEXT\">Submit a new report</a>');
 INSERT INTO portalbox VALUES (53,'SUBMIT NEW DOCUMENT','<a href=\"/submit?doctype=DEMOPIC\">Submit a new picture</a>');
 INSERT INTO portalbox VALUES (54,'ΣΧΕΤΙΚΑ ΜΕ ΤΗΝ ΣΕΛΙΔΑ','Καλως ήλθατε στον δικτυακό τόπο του CDS Invenio, ενός δωρεάν εξυπηρετητή για έγγραφα προερχόμενο απο το CERN. Είστε ευπρόσδεκτοι να εξερευνήσετε σε βάθος τις δυνατότητες που σας παρέχει ο δικτυακός αυτός τόπος.');
-INSERT INTO portalbox VALUES (55,'ΔΕΙΤΕ ΕΠΙΣΗΣ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (55,'ΔΕΙΤΕ ΕΠΙΣΗΣ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (56,'ПРО ЦЕЙ САЙТ','Ласкаво просимо до демонстраційного сайту CDS Invenio, вільного програмного забезпечення, розробленого CERN. Випробуйте всі можливості цього демонстраційного сайту в повному обсязі.');
-INSERT INTO portalbox VALUES (57,'ДИВИСЬ ТАКОЖ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (57,'ДИВИСЬ ТАКОЖ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (58,'SOBRE AQUEST LLOC','Benvinguts al lloc de demo de CDS Invenio, un servidor de documents lliure originat al CERN. Us convidem a explorar a fons totes les funcionalitats ofertes en aquestes pàgines de demostració.');
-INSERT INTO portalbox VALUES (59,'VEGEU TAMBÉ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (59,'VEGEU TAMBÉ','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (60,'この場所について','CDS Invenioデモンストレーションの場所への歓迎, CERN から来る自由な文書のサーバーソフトウェア,    このデモンストレーションの場所の特徴すべてを探検する自由の感じ');
-INSERT INTO portalbox VALUES (61,'また見なさい','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (61,'また見なさい','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (62,'O TEJ STRONIE','Witamy w wersji demo systemu CDS Invenio, darmowego oprogramowania do obsługi serwera dokumentów, stworzonego w CERN. Zachęcamy do odkrywania wszelkich funkcjonalności oferowanych przez tę stronę.');
-INSERT INTO portalbox VALUES (63,'ZOBACZ TAKŻE','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (63,'ZOBACZ TAKŻE','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (64,'ЗА САЙТА','Добре дошли на демонстрационния сайт на CDS Invenio, свободен софтуер за документни сървъри изработен в ЦЕРН. Чувствайте се свободни да изследвате всяка една от характеристиките на сайта.');
-INSERT INTO portalbox VALUES (65,'ВИЖ СЪЩО','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (65,'ВИЖ СЪЩО','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (66,'O OVOM SITE-u','Dobrodošli na CDS Invenio demo site. CDS Invenio je slobodno dostupan poslužitelj dokumenata razvijen na CERN-u. Slobodno istražite sve mogućnosti ove aplikacije.');
-INSERT INTO portalbox VALUES (67,'TAKOĐER POGLEDAJTE','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (67,'TAKOĐER POGLEDAJTE','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (68,'关于这个网站','欢迎来到CDS Invenio 的示范网站！CDS Invenio是一个由CERN开发的免费文件服务器软件。 要了解这网站所提供的各项特点, 请立刻行动，尽情探索。');
-INSERT INTO portalbox VALUES (69,'参见','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (69,'参见','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (70,'關於這個網站', '歡迎來到CDS Invenio 的示範網站！CDS Invenio是一個由CERN開發的免費文件伺服器軟體。 要瞭解這網站所提供的各項特點, 請立刻行動，盡情探索。');
-INSERT INTO portalbox VALUES (71,'參見','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (71,'參見','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (72,'IMPRESSZUM', 'Üdvözöljük a CDS Invenio bemutatóoldalain! Ezt a szabad dokumentumkezelő szoftvert a CERN-ben fejlesztették. Fedezze fel bátran a tesztrendszer nyújtotta szolgáltatásokat!');
-INSERT INTO portalbox VALUES (73,'LÁSD MÉG','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (73,'LÁSD MÉG','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (74,'OMTRENT HIERDIE TUISTE', 'Welkom by die demo tuiste van CDS Invenio, gratis dokument bediener sagteware wat deur CERN geskryf is. Voel vry om al die eienskappe van die demo te deursoek.');
-INSERT INTO portalbox VALUES (75,'SIEN OOK','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (75,'SIEN OOK','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (76,'ACERCA DESTE SITIO', 'Benvido ó sitio de demostración do CDS Invenio, un software de servidor de documentos do CERN. Por favor síntete libre de explorar todas as características deste sitio de demostración.');
-INSERT INTO portalbox VALUES (77,'VEXA TAMÉN','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a><br /><a href=\"http://google.com/\">Google</a>');
+INSERT INTO portalbox VALUES (77,'VEXA TAMÉN','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
 INSERT INTO portalbox VALUES (78,'ABOUT ATLANTIS TIMES','The \"Atlantis Times\" collections contain the articles from the \<a href=\"/journal/atlantistimes/\">Atlantis Times</a> journal.');
+INSERT INTO portalbox VALUES (79,'DESPRE ACEST SITE', 'Bine aţi venit pe site-ul demo al CDS Invenio, un software gratuit pentru servere de documente, creat de CERN. Nu ezitaţi să exploraţi din plin toate caracteristicile acestui site demo.');
+INSERT INTO portalbox VALUES (80,'ALTE RESURSE','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>');
+INSERT INTO portalbox VALUES (81,'IBYEREKERANYE N\'IYI WEB', 'Murakzaneza kuri web ya CDS Invenio, iyi ni koranabuhanga y\'ubuntu ya kozwe na CERN. Bitimuntu afite uburenganzira bwo kuyigerageza no kuyikoresha.');
+INSERT INTO portalbox VALUES (82,'REBA N\'IBI','<a href=\"http://cdsware.cern.ch/\">CDS Invenio</a><br /><a href=\"http://www.cern.ch/\">CERN</a>'); -- '
 
 INSERT INTO sbmCOLLECTION VALUES (36,'Document Types');
 
@@ -1018,6 +1058,7 @@ INSERT INTO sbmFIELD VALUES ('SBIDEMOJRN',1,6,'DEMOJRN_TITLEE','</TD></TR><TR><T
 INSERT INTO sbmFIELD VALUES ('SBIDEMOJRN',1,10,'DEMOJRN_IN','','O','Journal Name','','2008-09-26','2009-02-06',NULL,NULL);
 INSERT INTO sbmFIELD VALUES ('SBIDEMOJRN',1,12,'DEMOJRN_END','</td></tr><tr><td colspan=\"2\">','O','','','2008-09-26','2009-02-20',NULL,NULL);
 INSERT INTO sbmFIELD VALUES ('SBIDEMOJRN',1,8,'DEMOJRN_ABSE','</td></tr><tr><td><br />English article:<br />','O','English article:','','2008-11-04','2009-01-09',NULL,NULL);
+INSERT INTO sbmFIELD VALUES ('SBIDEMOJRN',1,14,'DEMOJRN_CATEG','','O','comboDEMOJRN-like for MBI','','2009-10-15','2009-10-15',NULL,NULL);
 
 INSERT INTO sbmFIELDDESC VALUES ('DEMOPIC_TITLE',NULL,'245__a','T',NULL,5,60,NULL,NULL,NULL,'2007-09-13','2007-09-13',NULL,NULL,0);
 INSERT INTO sbmFIELDDESC VALUES ('DEMOPIC_PHOTOG',NULL,'100__a','T',NULL,6,30,NULL,NULL,NULL,'2007-09-13','2007-09-19','<br /><br />Picture Author(s) or Photographers(s)<br /><i>(optional)(<B>one per line</B>)</i>:<br />',NULL,0);
@@ -1091,7 +1132,7 @@ INSERT INTO sbmFIELDDESC VALUES ('DEMOPOE_LANG',NULL,'041__a','S',NULL,NULL,NULL
 INSERT INTO sbmFIELDDESC VALUES ('DEMOPOE_RN',NULL,'037__a','I',35,NULL,NULL,NULL,'DEMO-POETRY-<YYYY>-???',NULL,'2008-03-12','2008-03-12',NULL,NULL,0);
 INSERT INTO sbmFIELDDESC VALUES ('DEMOPOE_TITLE',NULL,'245__a','T',NULL,5,60,NULL,NULL,NULL,'2008-03-12','2008-03-12','<br />Title:<br />',NULL,0);
 INSERT INTO sbmFIELDDESC VALUES ('DEMOPOE_YEAR',NULL,'909C0y','I',4,NULL,NULL,4,NULL,NULL,'2008-03-12','2008-03-12','<br /><br />Year:&nbsp;',NULL,0);
-INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_CHANGE',NULL,'','S',NULL,NULL,NULL,NULL,NULL,'<div id=\"1\" STYLE=\"position:relative;visibility:hidden;\">\r\n<select name=\"DEMOJRN_CHANGE[]\" size=\"2\" multiple>\r\n <option selected value=\"DEMOJRN_TYPE\">3</option>\r\n <option selected value=\"DEMOJRN_ISSUES\">4</option>\r\n <option selected value=\"DEMOJRN_AU\">12</option>\r\n <option selected value=\"DEMOJRN_EMAIL\">13</option>\r\n <option selected value=\"DEMOJRN_TITLEE\">14</option>\r\n <option selected value=\"DEMOJRN_TITLEF\">15</option>\r\n <option selected value=\"DEMOJRN_ABSE\">16</option>\r\n <option selected value=\"DEMOJRN_ABSF\">17</option>\r\n <option selected value=\"DEMOJRN_IN\">18</option>\r\n <option selected value=\"DEMOJRN_ENDING\">19</option>\r\n</select>\r\n</div>','2009-01-09','2009-02-20',NULL,NULL,0);
+INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_CHANGE',NULL,'','S',NULL,NULL,NULL,NULL,NULL,'<div id=\"1\" STYLE=\"position:relative;visibility:hidden;\">\r\n<select name=\"DEMOJRN_CHANGE[]\" size=\"2\" multiple>\r\n <option selected value=\"DEMOJRN_TYPE\">3</option>\r\n <option selected value=\"DEMOJRN_ISSUES\">4</option>\r\n <option selected value=\"DEMOJRN_AU\">12</option>\r\n <option selected value=\"DEMOJRN_EMAIL\">13</option>\r\n <option selected value=\"DEMOJRN_TITLEE\">14</option>\r\n <option selected value=\"DEMOJRN_TITLEF\">15</option>\r\n <option selected value=\"DEMOJRN_ABSE\">16</option>\r\n <option selected value=\"DEMOJRN_ABSF\">17</option>\r\n <option selected value=\"DEMOJRN_IN\">18</option>\r\n <option selected value=\"DEMOJRN_ENDING\">19</option>\r\n</select>\r\n <option selected value=\"DEMOJRN_CATEG\">20</option>\r\n</select>\r\n</div>','2009-01-09','2009-02-20',NULL,NULL,0);
 INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_TYPE',NULL,'691__a','S',NULL,NULL,NULL,NULL,NULL,'<select name=\"DEMOJRN_TYPE\">\r\n<option value=\"Select:\">Select:</option>\r\n\r\n<option value=\"DRAFT\">Offline</option>\r\n<option value=\"ONLINE\">Online</option>\r\n</select><small>[<a target=\"_blank\" href=\"/help/admin/webjournal-editor-guide#offlineVsOnline\">?</a>]</small>','2008-12-04','2009-02-20','<TABLE WIDTH=\"100%\" BGCOLOR=\"#D3E3E2\" ALIGN=\"center\" CELLSPACING=\"2\" CELLPADDING=\"2\" BORDER=\"1\"><TR><TD ALIGN=\"left\" colspan=\"2\"><br /><b>Update an Atlantis Times article:</b></TD></TR><TR><TD align=\"center\"><span style=\"color: red;\">*</span>Status:<br />',NULL,0);
 INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_AU',NULL,'100__a','T',NULL,4,60,NULL,NULL,NULL,'2008-09-23','2009-02-20','</TD></TR><TR><TD><br /><br />Author(s): <i>(one per line)</i><br />',NULL,0);
 INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_EMAIL',NULL,'859__a','T',NULL,4,60,NULL,NULL,NULL,'2008-09-23','2009-02-20','</TD><TD><br /><br />E-mail(s) of the author(s): <i>(one per line)</i><br />',NULL,0);
@@ -1105,6 +1146,7 @@ INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_RN',NULL,'037__a','I',35,NULL,NULL,NUL
 INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_IN',NULL,'595__a','H',NULL,NULL,NULL,NULL,'Atlantis Times',NULL,'2008-09-23','2009-02-20',' ',NULL,0);
 INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_ABSE',NULL,'520__b','R',NULL,100,90,NULL,NULL,'from invenio.htmlutils import get_html_text_editor\r\nfrom invenio.config import CFG_SITE_URL\r\nfrom invenio.search_engine import get_fieldvalues\r\nimport os\r\n\r\n\r\nif (\'modify\' in curdir) and not os.path.exists(\"%s/DEMOJRN_ABSE\" % curdir):\r\n    try:\r\n        content = get_fieldvalues(int(sysno), \'520__b\')[0]\r\n    except:\r\n        content = \'\'\r\nelif os.path.exists(\"%s/DEMOJRN_ABSE\" % curdir):\r\n    content = file(\"%s/DEMOJRN_ABSE\" % curdir).read()\r\nelse:\r\n    content = \'\'\r\n\r\ntext = get_html_text_editor(\"DEMOJRN_ABSE\",id=\"BulletinFCKEditor2\", content=content, toolbar_set=\"WebJournal\", width=\'522px\', height=\'700px\', file_upload_url=CFG_SITE_URL + \'/submit/attachfile\', custom_configurations_path=\'/fckeditor/journal-editor-config.js\')\r\n\r\n','2008-09-22','2009-02-23','</td></tr><tr><td><br />English Article:<br />',NULL,0);
 INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_ENDING',NULL,'','H',NULL,NULL,NULL,NULL,NULL,NULL,'2009-02-06','2009-02-20','</td></tr></table>',NULL,0);
+INSERT INTO sbmFIELDDESC VALUES ('DEMOJRN_CATEG',NULL,'','R',NULL,NULL,NULL,NULL,NULL,'# Solve usual problem with submit/direct?.. links that bypass \r\n# the comboXXX (category selection) of the submission. Retrieve \r\n# the value, and set it (only in the case of MBI)\r\n\r\nfrom invenio.search_engine import get_fieldvalues\r\n\r\nif \"modify\" in curdir:\r\n    try:\r\n        comboDEMOJRNfile = file(\"%s/%s\" % (curdir,\'comboDEMOJRN\'), \'w\')\r\n        report_number = get_fieldvalues(int(sysno), \'037__a\')[0]\r\n        category = report_number.split(\'-\')[1]\r\n        comboDEMOJRNfile.write(category)\r\n        comboDEMOJRNfile.close()\r\n    except:\r\n        text = \'\'','2009-10-15','2009-10-15',NULL,NULL,0);
 
 INSERT INTO sbmFUNCTIONS VALUES ('SBI','DEMOPIC','Mail_Submitter',70,1);
 INSERT INTO sbmFUNCTIONS VALUES ('SBI','DEMOPIC','Print_Success',60,1);

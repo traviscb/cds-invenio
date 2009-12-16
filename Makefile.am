@@ -29,7 +29,7 @@ JSMATH = jsMath-$(JSMV).zip
 JSMATHFONTS = jsMath-fonts-$(JSMFV).zip
 
 # current FCKeditor version
-FCKV = 2.6.4.1
+FCKV = 2.6.5
 FCKEDITOR = FCKeditor_$(FCKV).zip
 
 all:
@@ -114,6 +114,32 @@ uninstall-jsmath-plugin:
 	@echo "** The jsMath plugin was successfully uninstalled.       **"
 	@echo "***********************************************************"
 
+install-jscalendar-plugin:
+	@echo "***********************************************************"
+	@echo "** Installing jsCalendar plugin, please wait...              **"
+	@echo "***********************************************************"
+	rm -rf /tmp/invenio-jscalendar-plugin
+	mkdir /tmp/invenio-jscalendar-plugin
+	(cd /tmp/invenio-jscalendar-plugin && \
+	wget 'http://www.dynarch.com/static/jscalendar-1.0.zip' && \
+	unzip -u jscalendar-1.0.zip && \
+	mkdir -p ${prefix}/var/www/jsCalendar && \
+	cp jscalendar-1.0/img.gif ${prefix}/var/www/jsCalendar/jsCalendar.gif && \
+	cp jscalendar-1.0/calendar.js ${prefix}/var/www/jsCalendar/ && \
+	cp jscalendar-1.0/calendar-setup.js ${prefix}/var/www/jsCalendar/ && \
+	cp jscalendar-1.0/lang/calendar-en.js ${prefix}/var/www/jsCalendar/ && \
+	cp jscalendar-1.0/calendar-blue.css ${prefix}/var/www/jsCalendar/)
+	rm -fr /tmp/invenio-jscalendar-plugin
+	@echo "***********************************************************"
+	@echo "** The jsCalendar plugin was successfully installed.     **"
+	@echo "***********************************************************"
+
+uninstall-jscalendar-plugin:
+	@rm -rvf ${prefix}/var/www/jsCalendar
+	@echo "***********************************************************"
+	@echo "** The jsCalendar plugin was successfully uninstalled.       **"
+	@echo "***********************************************************"
+
 install-jquery-plugins: uninstall-jquery-plugins
 	@echo "***********************************************************"
 	@echo "** Installing various jQuery plugins, please wait...     **"
@@ -125,6 +151,8 @@ install-jquery-plugins: uninstall-jquery-plugins
 	wget http://jquery-ui.googlecode.com/svn/tags/latest/ui/minified/effects.core.min.js && \
 	wget http://jquery-ui.googlecode.com/svn/tags/latest/ui/minified/effects.highlight.min.js && \
 	wget http://www.appelsiini.net/download/jquery.jeditable.mini.js && \
+	wget http://tablesorter.com/jquery.tablesorter.js && \
+	wget http://tablesorter.com/addons/pager/jquery.tablesorter.pager.js && \
 	wget http://plugins.jquery.com/files/jquery.autogrow-1.2.2.zip && \
 	unzip jquery.autogrow-1.2.2.zip jquery.autogrow.js && \
 	rm jquery.autogrow-1.2.2.zip && \
@@ -140,6 +168,8 @@ uninstall-jquery-plugins:
 	rm -f effects.core.min.js && \
 	rm -f effects.highlight.min.js && \
 	rm -f jquery.jeditable.mini.js && \
+	rm -f jquery.tablesorter.js && \
+	rm -f jquery.tablesorter.pager.js && \
 	rm -f jquery.autogrow.js && \
 	rm -f json2.js && \
 	rm -f jquery.hotkeys.min.js)
@@ -338,5 +368,9 @@ update-v0.99.1-tables:
 	echo "UPDATE clsMETHOD SET location='http://cdsware.cern.ch/download/invenio-demo-site-files/NASA-subjects.rdf' WHERE name='NASA-subjects' AND location='';" | ${prefix}/bin/dbexec
 	echo "UPDATE accACTION SET name='runoairepository', description='run oairepositoryupdater task' WHERE name='runoaiarchive';" | ${prefix}/bin/dbexec
 	echo "UPDATE accACTION SET name='cfgoaiharvest', description='configure OAI Harvest' WHERE name='cfgbibharvest';" | ${prefix}/bin/dbexec
+	echo "ALTER TABLE accARGUMENT CHANGE value value varchar(255);" | ${prefix}/bin/dbexec
+	echo "UPDATE accACTION SET allowedkeywords='doctype,act,categ' WHERE name='submit';" | ${prefix}/bin/dbexec
+	echo "INSERT INTO accARGUMENT(keyword,value) VALUES ('categ','*');" | ${prefix}/bin/dbexec
+	echo "INSERT INTO accROLE_accACTION_accARGUMENT(id_accROLE,id_accACTION,id_accARGUMENT,argumentlistid) SELECT DISTINCT raa.id_accROLE,raa.id_accACTION,accARGUMENT.id,raa.argumentlistid FROM accROLE_accACTION_accARGUMENT as raa JOIN accACTION on id_accACTION=accACTION.id,accARGUMENT WHERE accACTION.name='submit' and accARGUMENT.keyword='categ' and accARGUMENT.value='*';" | ${prefix}/bin/dbexec
 
 CLEANFILES = *~ *.pyc *.tmp

@@ -28,8 +28,24 @@ from invenio.config import CFG_TMPDIR
 from invenio import bibrecord, bibrecord_config
 from invenio.testutils import make_test_suite, run_test_suite
 
-def warn(msg):
-    sys.stderr.write("\n\tWARNING: " + msg + "...")
+try:
+    import pyRXP
+    parser_pyrxp_available = True
+except ImportError:
+    parser_pyrxp_available = False
+
+try:
+    import Ft.Xml.Domlette
+    parser_4suite_available = True
+except ImportError:
+    parser_4suite_available = False
+
+try:
+    import xml.dom.minidom
+    import xml.parsers.expat
+    parser_minidom_available = True
+except ImportError:
+    parser_minidom_available = False
 
 class BibRecordSuccessTest(unittest.TestCase):
     """ bibrecord - demo file parsing test """
@@ -124,36 +140,23 @@ class BibRecordParsersTest(unittest.TestCase):
             '041': [([('a', 'eng')], ' ', ' ', '', 2)]
             }
 
-    def test_pyRXP(self):
-        """ bibrecord - create_record() with pyRXP """
-        try:
-            import pyRXP
-        except ImportError:
-            warn("pyRXP not available, test skipped")
-            return
-        record = bibrecord._create_record_rxp(self.xmltext)
-        self.assertEqual(record, self.expected_record)
+    if parser_pyrxp_available:
+        def test_pyRXP(self):
+            """ bibrecord - create_record() with pyRXP """
+            record = bibrecord._create_record_rxp(self.xmltext)
+            self.assertEqual(record, self.expected_record)
 
-    def test_4suite(self):
-        """ bibrecord - create_record() with 4suite """
-        try:
-            import Ft.Xml.Domlette
-        except ImportError:
-            warn("4suite not available, test skipped")
-            return
-        record = bibrecord._create_record_4suite(self.xmltext)
-        self.assertEqual(record, self.expected_record)
+    if parser_4suite_available:
+        def test_4suite(self):
+            """ bibrecord - create_record() with 4suite """
+            record = bibrecord._create_record_4suite(self.xmltext)
+            self.assertEqual(record, self.expected_record)
 
-    def test_minidom(self):
-        """ bibrecord - create_record() with minidom """
-        try:
-            import xml.dom.minidom
-            import xml.parsers.expat
-        except ImportError:
-            warn("minidom not available, test skipped")
-            return
-        record = bibrecord._create_record_minidom(self.xmltext)
-        self.assertEqual(record, self.expected_record)
+    if parser_minidom_available:
+        def test_minidom(self):
+            """ bibrecord - create_record() with minidom """
+            record = bibrecord._create_record_minidom(self.xmltext)
+            self.assertEqual(record, self.expected_record)
 
 class BibRecordBadInputTreatmentTest(unittest.TestCase):
     """ bibrecord - testing for bad input treatment """
@@ -1412,6 +1415,52 @@ class BibRecordFindFieldTest(unittest.TestCase):
             bibrecord.record_find_field(self.rec, '037', self.field2,
             strict=False))
 
+class BibRecordSingletonTest(unittest.TestCase):
+    """ bibrecord - testing singleton removal """
+
+    def setUp(self):
+        """Initialize stuff"""
+        self.xml = """<collection>
+                       <record>
+                         <controlfield tag="001">33</controlfield>
+                         <controlfield tag="002" />
+                         <datafield tag="99" ind1=" " ind2=" "/>
+                         <datafield tag="100" ind1=" " ind2=" ">
+                           <subfield code="a" />
+                         </datafield>
+                         <datafield tag="100" ind1=" " ind2=" ">
+                           <subfield code="a">Some value</subfield>
+                         </datafield>
+                         <tagname />
+                       </record>
+                       <record />
+                      <collection>"""
+        self.rec_expected = {
+            '001': [([], ' ', ' ', '33', 1)],
+            '100': [([('a', 'Some value')], ' ', ' ', '', 2)],
+            }
+
+    if parser_minidom_available:
+        def test_singleton_removal_minidom(self):
+            """bibrecord - singleton removal with minidom"""
+            rec = bibrecord.create_records(self.xml, verbose=1,
+                                           correct=1, parser='minidom')[0][0]
+            self.assertEqual(rec, self.rec_expected)
+
+    if parser_4suite_available:
+        def test_singleton_removal_4suite(self):
+            """bibrecord - singleton removal with 4suite"""
+            rec = bibrecord.create_records(self.xml, verbose=1,
+                                           correct=1, parser='4suite')[0][0]
+            self.assertEqual(rec, self.rec_expected)
+
+    if parser_pyrxp_available:
+        def test_singleton_removal_pyrxp(self):
+            """bibrecord - singleton removal with pyrxp"""
+            rec = bibrecord.create_records(self.xml, verbose=1,
+                                           correct=1, parser='pyrxp')[0][0]
+            self.assertEqual(rec, self.rec_expected)
+
 
 TEST_SUITE = make_test_suite(
     BibRecordSuccessTest,
@@ -1433,7 +1482,8 @@ TEST_SUITE = make_test_suite(
     BibRecordPrintingTest,
     BibRecordCreateFieldTest,
     BibRecordFindFieldTest,
-    BibRecordDeleteSubfieldTest
+    BibRecordDeleteSubfieldTest,
+    BibRecordSingletonTest
     )
 
 if __name__ == '__main__':

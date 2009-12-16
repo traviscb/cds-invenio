@@ -938,7 +938,12 @@ class BibSched:
         def calculate_rows():
             """Return all the rows to work on."""
             if run_sql("SELECT count(id) FROM schTASK WHERE status='ERROR' OR status='DONE WITH ERRORS'")[0][0] > 0:
-                raise StandardError('BibSched had to halt because at least a task is in status ERROR or DONE WITH ERRORS')
+                errors = run_sql("SELECT id,proc,status FROM schTASK WHERE status='ERROR' OR status='DONE WITH ERRORS'")
+                errors = ["    #%s %s -> %s" % row for row in errors]
+                raise StandardError('BibTask with ERRORS:\n%s' % "\n".join(errors))
+            max_bibupload_priority = run_sql("SELECT max(priority) FROM schTASK WHERE status='WAITING' AND proc='bibupload' AND runtime<=NOW()")
+            if max_bibupload_priority:
+                run_sql("UPDATE schTASK SET priority=%s WHERE status='WAITING' AND proc='bibupload' AND runtime<=NOW()", ( max_bibupload_priority[0][0], ))
             self.next_bibupload = run_sql("SELECT id,proc,runtime,status,priority FROM schTASK WHERE status='WAITING' AND proc='bibupload' AND runtime<=NOW() ORDER BY id ASC LIMIT 1", n=1)
             self.waitings = run_sql("SELECT id,proc,runtime,status,priority FROM schTASK WHERE (status='WAITING' AND runtime<=NOW()) OR status='SLEEPING' ORDER BY priority DESC, runtime ASC, id ASC")
             self.rows = run_sql("SELECT id,proc,runtime,status,priority FROM schTASK WHERE status IN ('RUNNING','CONTINUING','SCHEDULED','ABOUT TO STOP','ABOUT TO SLEEP')")
@@ -985,10 +990,10 @@ class BibSched:
                             break
                     else:
                         time.sleep(CFG_BIBSCHED_REFRESHTIME)
-        except:
+        except Exception, err:
             register_exception(alert_admin=True)
             try:
-                register_emergency('Emergency from %s: BibSched had to halt!' % CFG_SITE_URL)
+                register_emergency('Emergency from %s: BibSched halted: %s' % (CFG_SITE_URL, err))
             except NotImplementedError:
                 pass
             raise
