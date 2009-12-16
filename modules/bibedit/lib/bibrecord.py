@@ -52,6 +52,9 @@ TAG, ATTRS, CHILDREN = 0, 1, 2
 # Find out about the best usable parser:
 AVAILABLE_PARSERS = []
 
+# Do we remove singletons (empty tags)?
+CFG_BIBRECORD_KEEP_SINGLETONS = False
+
 try:
     import pyRXP
     if 'pyrxp' in CFG_BIBRECORD_PARSERS_AVAILABLE:
@@ -996,9 +999,17 @@ def record_find_field(rec, tag, field, strict=False):
 
     return (None, None)
 
+def record_strip_empty_volatile_subfields(rec):
+    """
+    Removes unchanged volatile subfields from the record
+    """
+    for tag in rec.keys():
+        for field in rec[tag]:
+            field[0][:] = [subfield for subfield in field[0] if subfield[1][:9] != "VOLATILE:"]
+
 def record_strip_empty_fields(rec, tag=None):
     """
-    Removes empty subfields and fields from the record. If 'tag' is None only
+    Removes empty subfields and fields from the record. If 'tag' is not None, only
     a specific tag of the record will be stripped, otherwise the whole record.
 
     @param rec:  A record dictionary structure
@@ -1243,30 +1254,38 @@ def _create_record_rxp(marcxml, verbose=CFG_BIBRECORD_DEFAULT_VERBOSE_LEVEL,
 
     # Consider the control fields.
     for controlfield in _get_children_by_tag_name_rxp(root, 'controlfield'):
-        value = ''.join([n for n in controlfield[CHILDREN]])
-        # Construct the field tuple.
-        field = ([], ' ', ' ', value, field_position_global)
-        record.setdefault(controlfield[ATTRS]['tag'], []).append(field)
-
-        field_position_global += 1
+        if controlfield[CHILDREN]:
+            value = ''.join([n for n in controlfield[CHILDREN]])
+            # Construct the field tuple.
+            field = ([], ' ', ' ', value, field_position_global)
+            record.setdefault(controlfield[ATTRS]['tag'], []).append(field)
+            field_position_global += 1
+        elif CFG_BIBRECORD_KEEP_SINGLETONS:
+            field = ([], ' ', ' ', '', field_position_global)
+            record.setdefault(controlfield[ATTRS]['tag'], []).append(field)
+            field_position_global += 1
 
     # Consider the data fields.
     for datafield in _get_children_by_tag_name_rxp(root, 'datafield'):
         subfields = []
         for subfield in _get_children_by_tag_name_rxp(datafield, 'subfield'):
-            value = ''.join([n for n in subfield[CHILDREN]])
-            subfields.append((subfield[ATTRS].get('code', '!'), value))
+            if subfield[CHILDREN]:
+                value = ''.join([n for n in subfield[CHILDREN]])
+                subfields.append((subfield[ATTRS].get('code', '!'), value))
+            elif CFG_BIBRECORD_KEEP_SINGLETONS:
+                subfields.append((subfield[ATTRS].get('code', '!'), ''))
 
-        # Create the field.
-        tag = datafield[ATTRS].get('tag', '!')
-        ind1 = datafield[ATTRS].get('ind1', '!')
-        ind2 = datafield[ATTRS].get('ind2', '!')
-        ind1, ind2 = _wash_indicators(ind1, ind2)
-        # Construct the field tuple.
-        field = (subfields, ind1, ind2, '', field_position_global)
-        record.setdefault(tag, []).append(field)
+        if subfields or CFG_BIBRECORD_KEEP_SINGLETONS:
+            # Create the field.
+            tag = datafield[ATTRS].get('tag', '!')
+            ind1 = datafield[ATTRS].get('ind1', '!')
+            ind2 = datafield[ATTRS].get('ind2', '!')
+            ind1, ind2 = _wash_indicators(ind1, ind2)
+            # Construct the field tuple.
+            field = (subfields, ind1, ind2, '', field_position_global)
+            record.setdefault(tag, []).append(field)
 
-        field_position_global += 1
+            field_position_global += 1
 
     return record
 
@@ -1297,10 +1316,10 @@ def _create_record_from_document(document):
         text_nodes = controlfield.childNodes
         value = ''.join([n.data for n in text_nodes]).encode("utf-8")
 
-        field = ([], " ", " ", value, field_position_global)
-
-        record.setdefault(tag, []).append(field)
-        field_position_global += 1
+        if value or CFG_BIBRECORD_KEEP_SINGLETONS:
+            field = ([], " ", " ", value, field_position_global)
+            record.setdefault(tag, []).append(field)
+            field_position_global += 1
 
     for datafield in _get_children_by_tag_name(root, "datafield"):
         subfields = []
@@ -1308,18 +1327,20 @@ def _create_record_from_document(document):
         for subfield in _get_children_by_tag_name(datafield, "subfield"):
             text_nodes = subfield.childNodes
             value = ''.join([n.data for n in text_nodes]).encode("utf-8")
-            code = subfield.getAttributeNS(None, 'code').encode("utf-8")
-            subfields.append((code or '!', value))
+            if value or CFG_BIBRECORD_KEEP_SINGLETONS:
+                code = subfield.getAttributeNS(None, 'code').encode("utf-8")
+                subfields.append((code or '!', value))
 
-        tag = datafield.getAttributeNS(None, "tag").encode("utf-8") or '!'
+        if subfields or CFG_BIBRECORD_KEEP_SINGLETONS:
+            tag = datafield.getAttributeNS(None, "tag").encode("utf-8") or '!'
 
-        ind1 = datafield.getAttributeNS(None, "ind1").encode("utf-8")
-        ind2 = datafield.getAttributeNS(None, "ind2").encode("utf-8")
-        ind1, ind2 = _wash_indicators(ind1, ind2)
-        field = (subfields, ind1, ind2, "", field_position_global)
+            ind1 = datafield.getAttributeNS(None, "ind1").encode("utf-8")
+            ind2 = datafield.getAttributeNS(None, "ind2").encode("utf-8")
+            ind1, ind2 = _wash_indicators(ind1, ind2)
+            field = (subfields, ind1, ind2, "", field_position_global)
 
-        record.setdefault(tag, []).append(field)
-        field_position_global += 1
+            record.setdefault(tag, []).append(field)
+            field_position_global += 1
 
     return record
 

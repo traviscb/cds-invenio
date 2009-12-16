@@ -20,13 +20,16 @@
 ## script.
 
 ## Initialize autoconf and automake:
-AC_INIT(cds-invenio, 0.99.90.20091116, cds.support@cern.ch)
+AC_INIT(cds-invenio, 0.99.90.20091213, cds.support@cern.ch)
 AM_INIT_AUTOMAKE([tar-ustar])
 
 ## By default we shall install into /opt/cds-invenio.  (Do not use
 ## AC_PREFIX_DEFAULT for this, because it would not work well with
 ## the localstatedir hack below.)
 test "${prefix}" = NONE && prefix=/opt/cds-invenio
+
+## Remove eventual trailing slashes from the prefix value:
+test "${prefix%/}" != "" && prefix=${prefix%/}
 
 ## Check for install:
 AC_PROG_INSTALL

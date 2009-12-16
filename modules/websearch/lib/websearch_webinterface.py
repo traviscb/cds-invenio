@@ -760,7 +760,7 @@ class WebInterfaceSearchInterfacePages(WebInterfaceDirectory):
         elif component == 'record' and path and path[0] == 'edit':
             return WebInterfaceEditPages(), path[1:]
 
-        elif component == 'record' and path[0] == 'multiedit':
+        elif component == 'record' and path and path[0] == 'multiedit':
             return WebInterfaceMultiEditPages(), path[1:]
 
         elif component == 'record' or component == 'record-restricted':
@@ -1002,12 +1002,24 @@ def display_collection(req, c, aas, verbose, ln):
         c_last_updated = ""
     try:
         title = get_coll_i18nname(c, ln)
-        # if there is only one collection defined, do not print its
-        # title on the page as it would be displayed repetitively.
-        if len(search_engine.collection_reclist_cache.cache.keys()) == 1:
-            title = ""
     except:
         title = ""
+
+    show_title_p = True
+    body_css_classes = []
+    if c == CFG_SITE_NAME:
+        # Do not display title on home collection
+        show_title_p = False
+        body_css_classes.append('home')
+
+    if len(search_engine.collection_reclist_cache.cache.keys()) == 1:
+        # if there is only one collection defined, do not print its
+        # title on the page as it would be displayed repetitively.
+        show_title_p = False
+
+    if aas == -1:
+        show_title_p = False
+
     # RSS:
     rssurl = CFG_SITE_URL + '/rss'
     rssurl_params = []
@@ -1048,7 +1060,8 @@ def display_collection(req, c, aas, verbose, ln):
                 lastupdated=c_last_updated,
                 navmenuid='search',
                 rssurl=rssurl,
-                show_title_p=-1 not in CFG_WEBSEARCH_ENABLED_SEARCH_INTERFACES)
+                body_css_classes=body_css_classes,
+                show_title_p=show_title_p)
 
 class WebInterfaceRSSFeedServicePages(WebInterfaceDirectory):
     """RSS 2.0 feed service pages."""
