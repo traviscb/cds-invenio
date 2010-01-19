@@ -609,10 +609,10 @@ class SpiresToInvenioSyntaxConverter:
         # in case of changes correct also the code in this method
         self._re_exact_author_match = re.compile(r'\bexactauthor:(?P<author_name>.*?\b)(?= and | or | not |$)', re.IGNORECASE)
 
-        # regular expression that matches search term, its conent (words that
-        # are searched)and the operator preceding the term. In case that the
-        # names of the groups defined in the expression are changed, the
-        # chagned should be reflected in the code that use it.
+        # regular expression that matches search term, its content (words that
+        # are searched) and the operator preceding the term. In case that the
+        # names of the groups defined in the expression are changed, those
+        # changes should be reflected in the code that using this.
         self._re_search_term_pattern_match = re.compile(r'\b(?P<combine_operator>find|and|or|not)\s+(?P<search_term>title:|keyword:)(?P<search_content>.*?\b)(?= and | or | not |$)', re.IGNORECASE)
 
         # regular expression used to split string by white space as separator
@@ -955,8 +955,30 @@ class SpiresToInvenioSyntaxConverter:
         return result
 
     def _replace_all_spires_keywords_in_string(self, query):
-        """Replaces all SPIRES keywords in the string with their
-        corresponding Invenio keywords"""
+        """Replaces all SPIRES keywords in the string with their corresponding Invenio keywords
+           
+        Turn everything between keywords into quoted expressions
+        """
+
+        keywords = ['and', 'or', 'not']
+        kre = re.compile('\\b|\\b'.join(keywords))
+        wre = re.compile('\S+')
+        new_query = 'find '
+        start = 4
+        matches = 0
+        for m in kre.finditer(query.lower()):
+            matches += 1
+            end = m.span()[0]
+            words = wre.findall(query[start:end])
+            new_query += words[0] + ' '
+            if len(words) > 1:
+                new_query += '"' + ' '.join(words[1:]) + '" ' + m.group() + ' '
+            start = m.span()[1]
+        words = wre.findall(query[start:])
+        new_query += words[0] + ' '
+        if len(words) > 1:
+            new_query += '"' + ' '.join(words[1:]) + '" ' + m.group() + ' '
+        query = new_query
 
         for spires_keyword, invenio_keyword in self._SPIRES_TO_INVENIO_KEYWORDS_MATCHINGS.iteritems():
             query = self._replace_keyword(query, spires_keyword, invenio_keyword)
