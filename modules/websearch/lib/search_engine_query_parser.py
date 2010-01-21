@@ -977,7 +977,7 @@ class SpiresToInvenioSyntaxConverter:
         words = wre.findall(query[start:])
         new_query += words[0] + ' '
         if len(words) > 1:
-            new_query += '"' + ' '.join(words[1:]) + '" ' + m.group() + ' '
+            new_query += '"' + ' '.join(words[1:]) + '" ' 
         query = new_query
 
         for spires_keyword, invenio_keyword in self._SPIRES_TO_INVENIO_KEYWORDS_MATCHINGS.iteritems():
