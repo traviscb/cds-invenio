@@ -194,14 +194,14 @@ class TestSpiresToInvenioSyntaxConverter(unittest.TestCase):
 
     def test_author_full_initial(self):
         """SPIRES search syntax - find a klebanov, igor r."""
-        inv_search = 'author:"klebanov, igor* r*" or author:"klebanov, i r" or author:"klebanov, igor"'
+        inv_search = 'author:"klebanov, igor* r*" or author:"klebanov, i.r." or author:"klebanov, ig.r."'
         spi_search = "find a klebanov, igor r."
         self._compare_searches(inv_search, spi_search)
 
 
     def test_author_full_first(self):
         """SPIRES search syntax - find a ellis, john"""
-        invenio_search = 'author:"ellis, john" or author:"ellis, j *" or author:"ellis, j" or author:"ellis, jo *" or author:"ellis, jo" or author:"ellis, john *"'
+        invenio_search = 'author:"ellis, john" or author:"ellis, j.*" or author:"ellis, j" or author:"ellis, jo.*" or author:"ellis, jo" or author:"ellis, john *"'
         spires_search = 'find a ellis, john'
         self._compare_searches(invenio_search, spires_search)
 
