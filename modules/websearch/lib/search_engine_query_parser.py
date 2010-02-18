@@ -27,7 +27,6 @@ __revision__ = "$Id$"
 
 import re
 
-from invenio.config import CFG_INSPIRE_SITE
 from invenio.bibindex_engine_tokenizer import BibIndexFuzzyNameTokenizer as FNT
 
 QueryScanner = FNT()
@@ -874,7 +873,7 @@ class SpiresToInvenioSyntaxConverter:
             scanned_name = QueryScanner.scan(match.group('name'))
             result += self._create_author_search_pattern_from_fuzzy_name_dict(scanned_name) + ' '
             current_position = match.end()
-        result += query[current_position : -1]
+        result += query[current_position : len(query)]
         return result
 
     def _create_author_search_pattern_from_fuzzy_name_dict(self, fuzzy_name):
@@ -915,11 +914,11 @@ class SpiresToInvenioSyntaxConverter:
         # in case we don't use SPIRES data, the ending dot is ommited.
 
         if len(author_name) > 1:
-            return AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name + '" OR ' +\
-                AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name[0] + '.' + '*" OR ' +\
-                AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name[0] + '" OR ' +\
-                AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name[0:2] + '.' + '*" OR ' +\
-                AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name[0:2] + '" OR ' +\
+            return AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name + '" or ' +\
+                AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name[0] + '.' + '*" or ' +\
+                AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name[0] + '" or ' +\
+                AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name[0:2] + '.' + '*" or ' +\
+                AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name[0:2] + '" or ' +\
                 AUTHOR_KEYWORD + '"' + author_surname + ', ' + author_name + ' *"'
 
     def _replace_spires_keywords_with_invenio_keywords(self, query):
@@ -971,5 +970,6 @@ class SpiresToInvenioSyntaxConverter:
                        old_keyword + r'(?P<end>[\s\(]+|$)'
         regular_expression = re.compile(regex_string, re.IGNORECASE)
         result = regular_expression.sub(r'\g<operator>' + new_keyword + r'\g<end>', query)
-        result = result.replace(": ",":")
+        result = re.sub(':\s+', ':', result)
+        #result = result.replace(": ",":")
         return result
