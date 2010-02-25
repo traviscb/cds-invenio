@@ -36,9 +36,8 @@ class InvenioWebSearchUnknownCollectionError(Exception):
         """String representation."""
         return repr(self.colname)
 
-class InvenioWebSearchQueryLimitReachedWarning(Exception):
+class InvenioWebSearchWildcardLimitError(Exception):
     """Exception raised when query limit reached."""
     def __init__(self, res):
         """Initialization."""
         self.res = res
-        

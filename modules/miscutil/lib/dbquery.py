@@ -43,8 +43,7 @@ from zlib import compress, decompress
 from thread import get_ident
 from invenio.config import CFG_ACCESS_CONTROL_LEVEL_SITE, \
     CFG_MISCUTIL_SQL_MAX_CACHED_QUERIES, CFG_MISCUTIL_SQL_USE_SQLALCHEMY, \
-    CFG_MISCUTIL_SQL_RUN_SQL_MANY_LIMIT,\
-    CFG_MISCUTIL_SQL_QUERY_LIMIT
+    CFG_MISCUTIL_SQL_RUN_SQL_MANY_LIMIT
 from invenio.errorlib import register_exception
 
 if CFG_MISCUTIL_SQL_USE_SQLALCHEMY:
@@ -80,7 +79,7 @@ try:
 except NameError:
     _db_cache = {}
 
-class DbQueryLimitReachedWarning(Exception):
+class InvenioDbQueryWildcardLimitError(Exception):
     """Exception raised when query limit reached."""
     def __init__(self, res):
         """Initialization."""
@@ -299,19 +298,23 @@ def run_sql_many(query, params, limit=CFG_MISCUTIL_SQL_RUN_SQL_MANY_LIMIT):
         i += limit
     return r
 
-def run_sql_with_limit(query, param=None, n=0, with_desc=0):
+def run_sql_with_limit(query, param=None, n=0, with_desc=0, wildcard_limit=0):
     """This function should be used in some cases, instead of run_sql function, in order
         to protect the db from queries that might take a log time to respond
         Ex: search queries like [a-z]+ ; cern*; a->z;
         The parameters are exactly the ones for run_sql function.
-        In case the query limit is reached, an DbQueryLimitWarning will be raised.
+        In case the query limit is reached, an InvenioDbQueryWildcardLimitError will be raised.
     """
-    if CFG_MISCUTIL_SQL_QUERY_LIMIT < 1:#no limit on the wildcard queries
+    try:
+        dummy = int(wildcard_limit)
+    except ValueError:
+        raise
+    if wildcard_limit < 1:#no limit on the wildcard queries
         return run_sql(query, param, n, with_desc)
-    safe_query = query + " limit %s" % CFG_MISCUTIL_SQL_QUERY_LIMIT
+    safe_query = query + " limit %s" %wildcard_limit
     res = run_sql(safe_query, param, n, with_desc)
-    if len(res) == CFG_MISCUTIL_SQL_QUERY_LIMIT:
-        raise DbQueryLimitReachedWarning(res)
+    if len(res) == wildcard_limit:
+        raise InvenioDbQueryWildcardLimitError(res) 
     return res
 
 def blob_to_string(ablob):
