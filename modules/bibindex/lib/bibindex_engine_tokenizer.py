@@ -50,8 +50,8 @@ class BibIndexTokenizer(object):
         @type s: string
 
         @return: dict of lexically tagged input items
-            In a sample Tokenizer where scan_string simply splits s on 
-            space, scan_string might output the following for 
+            In a sample Tokenizer where scan_string simply splits s on
+            space, scan_string might output the following for
             "Assam and Darjeeling":
             {
                 'TOKEN_TAG_LIST' : 'word_list',
@@ -243,7 +243,7 @@ class BibIndexFuzzyNameTokenizer(BibIndexTokenizer):
             """Lists [name, initial, empty]"""
             if name == None:
                 return []
-            return [name, name[0] + '']
+            return [name, name[0]]
 
         def _pair_items(head, tail):
             """Lists every combination of head with each and all of tail"""
@@ -251,15 +251,24 @@ class BibIndexFuzzyNameTokenizer(BibIndexTokenizer):
                 return [head]
             l = []
             l.extend([head + ' ' + tail[0]])
+            l.extend([head + '-' + tail[0]])
             l.extend(_pair_items(head, tail[1:]))
             return l
 
         def _collect(head, tail):
             """Brings together combinations of things"""
+
+            def _cons(a, l):
+                l2 = l[:]
+                l2.insert(0, a)
+                return l2
+
             if len(tail) == 0:
                 return [head]
             l = []
             l.extend(_pair_items(head, _expand_name(tail[0])))
+            l.extend([' '.join(_cons(head, tail)).strip()])
+            l.extend(['-'.join(_cons(head, tail)).strip()])
             l.extend(_collect(head, tail[1:]))
             return l
 

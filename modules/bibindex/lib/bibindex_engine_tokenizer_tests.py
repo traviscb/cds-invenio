@@ -185,10 +185,11 @@ class TestFuzzyNameTokenizerTokens(unittest.TestCase):
         tagged_data = {'TOKEN_TAG_LIST': ['lastnames', 'nonlastnames', 'titles'],
                  'lastnames': ['Peskin'], 'nonlastnames': ['Michael', 'Edward'], 'titles': []}
         output = self.get_index_tokens(tagged_data)
-        anticipated = ['E Peskin', 'Edward Peskin', 'M E Peskin', 'M Edward Peskin',
-                       'M Peskin', 'Michael E Peskin', 'Michael Edward Peskin', 'Michael Peskin', 'Peskin, E',
-                       'Peskin, Edward', 'Peskin, M', 'Peskin, M E', 'Peskin, M Edward',
-                       'Peskin, Michael', 'Peskin, Michael E', 'Peskin, Michael Edward']
+        anticipated = ['E Peskin', 'Edward Peskin', 'M E Peskin', 'M Edward Peskin', 'M Peskin', 'M-E Peskin',
+                       'M-Edward Peskin', 'Michael E Peskin', 'Michael Edward Peskin', 'Michael Peskin',
+                       'Michael-E Peskin', 'Michael-Edward Peskin', 'Peskin, E', 'Peskin, Edward', 'Peskin, M',
+                       'Peskin, M E', 'Peskin, M Edward', 'Peskin, M-E', 'Peskin, M-Edward', 'Peskin, Michael',
+                       'Peskin, Michael E', 'Peskin, Michael Edward', 'Peskin, Michael-E', 'Peskin, Michael-Edward']
         self.assertEqual(output, anticipated)
 
     def test_bifnt_tokenize_compound_last(self):
@@ -199,7 +200,7 @@ class TestFuzzyNameTokenizerTokens(unittest.TestCase):
         tagged_data = {'TOKEN_TAG_LIST': ['lastnames', 'nonlastnames', 'titles'],
                  'lastnames': ['Alvarez', 'Gaume'], 'nonlastnames': ['Joachim'], 'titles': []}
         output = self.get_index_tokens(tagged_data)
-        anticipated = ['Alvarez Gaume, J', 'Alvarez Gaume, Joachim', 'Alvarez, J', 'Alvarez, Joachim', 'Gaume, J', 
+        anticipated = ['Alvarez Gaume, J', 'Alvarez Gaume, Joachim', 'Alvarez, J', 'Alvarez, Joachim', 'Gaume, J',
                        'Gaume, Joachim', 'J Alvarez', 'J Alvarez Gaume', 'J Gaume', 'Joachim Alvarez',
                        'Joachim Alvarez Gaume', 'Joachim Gaume']
         self.assertEqual(output, anticipated)
@@ -212,7 +213,7 @@ class TestFuzzyNameTokenizerTokens(unittest.TestCase):
         tagged_data = {'TOKEN_TAG_LIST': ['lastnames', 'nonlastnames', 'titles'],
                  'lastnames': ['Epstein'], 'nonlastnames': ['Brian'], 'titles': ['The Fifth Beatle']}
         output = self.get_index_tokens(tagged_data)
-        anticipated = ['B Epstein', 'B Epstein, The Fifth Beatle', 'Brian Epstein', 
+        anticipated = ['B Epstein', 'B Epstein, The Fifth Beatle', 'Brian Epstein',
                        'Brian Epstein, The Fifth Beatle', 'Epstein, B', 'Epstein, B, The Fifth Beatle',
                        'Epstein, Brian', 'Epstein, Brian, The Fifth Beatle']
         self.assertEqual(output, anticipated)
@@ -225,28 +226,51 @@ class TestFuzzyNameTokenizerTokens(unittest.TestCase):
         tagged_data = {'TOKEN_TAG_LIST': ['lastnames', 'nonlastnames', 'titles'],
                  'lastnames': ['Ibanez', 'y', 'Gracia'], 'nonlastnames': ['Maria', 'Luisa'], 'titles': ['II', '(ed.)']}
         output = self.get_index_tokens(tagged_data)
-        anticipated = ['Gracia, L', 'Gracia, Luisa', 'Gracia, M', 'Gracia, M L', 'Gracia, M Luisa',
-            'Gracia, Maria', 'Gracia, Maria L', 'Gracia, Maria Luisa', 'Ibanez y Gracia, L',
-            'Ibanez y Gracia, L, (ed.)', 'Ibanez y Gracia, L, II', 'Ibanez y Gracia, Luisa',
-            'Ibanez y Gracia, Luisa, (ed.)', 'Ibanez y Gracia, Luisa, II', 'Ibanez y Gracia, M',
-            'Ibanez y Gracia, M L', 'Ibanez y Gracia, M L, (ed.)', 'Ibanez y Gracia, M L, II',
+        anticipated = ['Gracia, L', 'Gracia, Luisa', 'Gracia, M', 'Gracia, M L', 'Gracia, M Luisa', 'Gracia, M-L',
+            'Gracia, M-Luisa', 'Gracia, Maria', 'Gracia, Maria L', 'Gracia, Maria Luisa', 'Gracia, Maria-L',
+            'Gracia, Maria-Luisa', 'Ibanez y Gracia, L', 'Ibanez y Gracia, L, (ed.)', 'Ibanez y Gracia, L, II',
+            'Ibanez y Gracia, Luisa', 'Ibanez y Gracia, Luisa, (ed.)', 'Ibanez y Gracia, Luisa, II',
+            'Ibanez y Gracia, M', 'Ibanez y Gracia, M L', 'Ibanez y Gracia, M L, (ed.)', 'Ibanez y Gracia, M L, II',
             'Ibanez y Gracia, M Luisa', 'Ibanez y Gracia, M Luisa, (ed.)', 'Ibanez y Gracia, M Luisa, II',
-            'Ibanez y Gracia, M, (ed.)', 'Ibanez y Gracia, M, II', 'Ibanez y Gracia, Maria', 
+            'Ibanez y Gracia, M, (ed.)', 'Ibanez y Gracia, M, II', 'Ibanez y Gracia, M-L',
+            'Ibanez y Gracia, M-L, (ed.)', 'Ibanez y Gracia, M-L, II', 'Ibanez y Gracia, M-Luisa',
+            'Ibanez y Gracia, M-Luisa, (ed.)', 'Ibanez y Gracia, M-Luisa, II', 'Ibanez y Gracia, Maria',
             'Ibanez y Gracia, Maria L', 'Ibanez y Gracia, Maria L, (ed.)', 'Ibanez y Gracia, Maria L, II',
-            'Ibanez y Gracia, Maria Luisa', 'Ibanez y Gracia, Maria Luisa, (ed.)', 
-            'Ibanez y Gracia, Maria Luisa, II', 'Ibanez y Gracia, Maria, (ed.)', 'Ibanez y Gracia, Maria, II',
-            'Ibanez, L', 'Ibanez, Luisa', 'Ibanez, M', 'Ibanez, M L', 'Ibanez, M Luisa', 'Ibanez, Maria',
-            'Ibanez, Maria L', 'Ibanez, Maria Luisa', 'L Gracia', 'L Ibanez', 'L Ibanez y Gracia', 
-            'L Ibanez y Gracia, (ed.)', 'L Ibanez y Gracia, II', 'Luisa Gracia', 'Luisa Ibanez',
-            'Luisa Ibanez y Gracia', 'Luisa Ibanez y Gracia, (ed.)', 'Luisa Ibanez y Gracia, II',
-            'M Gracia', 'M Ibanez', 'M Ibanez y Gracia', 'M Ibanez y Gracia, (ed.)', 'M Ibanez y Gracia, II',
-            'M L Gracia', 'M L Ibanez', 'M L Ibanez y Gracia', 'M L Ibanez y Gracia, (ed.)', 
-            'M L Ibanez y Gracia, II', 'M Luisa Gracia', 'M Luisa Ibanez', 'M Luisa Ibanez y Gracia',
-            'M Luisa Ibanez y Gracia, (ed.)', 'M Luisa Ibanez y Gracia, II', 'Maria Gracia', 'Maria Ibanez',
-            'Maria Ibanez y Gracia', 'Maria Ibanez y Gracia, (ed.)', 'Maria Ibanez y Gracia, II',
+            'Ibanez y Gracia, Maria Luisa', 'Ibanez y Gracia, Maria Luisa, (ed.)', 'Ibanez y Gracia, Maria Luisa, II',
+            'Ibanez y Gracia, Maria, (ed.)', 'Ibanez y Gracia, Maria, II', 'Ibanez y Gracia, Maria-L',
+            'Ibanez y Gracia, Maria-L, (ed.)', 'Ibanez y Gracia, Maria-L, II', 'Ibanez y Gracia, Maria-Luisa',
+            'Ibanez y Gracia, Maria-Luisa, (ed.)', 'Ibanez y Gracia, Maria-Luisa, II', 'Ibanez, L', 'Ibanez, Luisa',
+            'Ibanez, M', 'Ibanez, M L', 'Ibanez, M Luisa', 'Ibanez, M-L', 'Ibanez, M-Luisa', 'Ibanez, Maria',
+            'Ibanez, Maria L', 'Ibanez, Maria Luisa', 'Ibanez, Maria-L', 'Ibanez, Maria-Luisa', 'L Gracia', 'L Ibanez',
+            'L Ibanez y Gracia', 'L Ibanez y Gracia, (ed.)', 'L Ibanez y Gracia, II', 'Luisa Gracia', 'Luisa Ibanez',
+            'Luisa Ibanez y Gracia', 'Luisa Ibanez y Gracia, (ed.)', 'Luisa Ibanez y Gracia, II', 'M Gracia',
+            'M Ibanez', 'M Ibanez y Gracia', 'M Ibanez y Gracia, (ed.)', 'M Ibanez y Gracia, II', 'M L Gracia',
+            'M L Ibanez', 'M L Ibanez y Gracia', 'M L Ibanez y Gracia, (ed.)', 'M L Ibanez y Gracia, II',
+            'M Luisa Gracia', 'M Luisa Ibanez', 'M Luisa Ibanez y Gracia', 'M Luisa Ibanez y Gracia, (ed.)',
+            'M Luisa Ibanez y Gracia, II', 'M-L Gracia', 'M-L Ibanez', 'M-L Ibanez y Gracia',
+            'M-L Ibanez y Gracia, (ed.)', 'M-L Ibanez y Gracia, II', 'M-Luisa Gracia', 'M-Luisa Ibanez',
+            'M-Luisa Ibanez y Gracia', 'M-Luisa Ibanez y Gracia, (ed.)', 'M-Luisa Ibanez y Gracia, II', 'Maria Gracia',
+            'Maria Ibanez', 'Maria Ibanez y Gracia', 'Maria Ibanez y Gracia, (ed.)', 'Maria Ibanez y Gracia, II',
             'Maria L Gracia', 'Maria L Ibanez', 'Maria L Ibanez y Gracia', 'Maria L Ibanez y Gracia, (ed.)',
-            'Maria L Ibanez y Gracia, II', 'Maria Luisa Gracia', 'Maria Luisa Ibanez', 
-            'Maria Luisa Ibanez y Gracia', 'Maria Luisa Ibanez y Gracia, (ed.)', 'Maria Luisa Ibanez y Gracia, II']
+            'Maria L Ibanez y Gracia, II', 'Maria Luisa Gracia', 'Maria Luisa Ibanez', 'Maria Luisa Ibanez y Gracia',
+            'Maria Luisa Ibanez y Gracia, (ed.)', 'Maria Luisa Ibanez y Gracia, II', 'Maria-L Gracia',
+            'Maria-L Ibanez', 'Maria-L Ibanez y Gracia', 'Maria-L Ibanez y Gracia, (ed.)',
+            'Maria-L Ibanez y Gracia, II', 'Maria-Luisa Gracia', 'Maria-Luisa Ibanez', 'Maria-Luisa Ibanez y Gracia',
+            'Maria-Luisa Ibanez y Gracia, (ed.)', 'Maria-Luisa Ibanez y Gracia, II']
+        self.assertEqual(output, anticipated)
+
+    def test_bifnt_tokenize_multimiddle_forward(self):
+        """BibIndexFuzzyNameTokenizer - tokens for first middle middle last
+
+        W K H Panofsky
+        """
+        tagged_data = {'TOKEN_TAG_LIST': ['lastnames', 'nonlastnames', 'titles'],
+                 'lastnames': ['Panofsky'], 'nonlastnames': ['W', 'K', 'H'], 'titles': []}
+        output = self.get_index_tokens(tagged_data)
+        anticipated = ['H Panofsky', 'K H Panofsky', 'K Panofsky', 'K-H Panofsky', 'Panofsky, H', 'Panofsky, K',
+                       'Panofsky, K H', 'Panofsky, K-H', 'Panofsky, W', 'Panofsky, W H', 'Panofsky, W K',
+                       'Panofsky, W K H', 'Panofsky, W-H', 'Panofsky, W-K', 'Panofsky, W-K-H', 'W H Panofsky',
+                       'W K H Panofsky', 'W K Panofsky', 'W Panofsky', 'W-H Panofsky', 'W-K Panofsky', 'W-K-H Panofsky']
         self.assertEqual(output, anticipated)
 
     def test_tokenize(self):
