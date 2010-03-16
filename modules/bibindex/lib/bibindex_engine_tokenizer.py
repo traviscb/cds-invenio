@@ -218,6 +218,13 @@ class BibIndexFuzzyNameTokenizer(BibIndexTokenizer):
         for exp in self.__expand_nonlastnames(first_parts):
             expanded.extend(_fully_expanded_last_name(exp, last_parts, None))
             for title in titles:
+                # Drop titles which are parenthesized.  This eliminates (ed.) from the index, but
+                # leaves XI, for example.  This gets rid of the surprising behavior that searching
+                # for 'author:ed' retrieves people who have been editors, but whose names aren't
+                # Ed.
+                # TODO: Make editorship and other special statuses a MARC field.
+                if title.find('(') != -1:
+                    continue
                 # XXX: remember to document that titles can only be applied to complete last names
                 expanded.extend(_fully_expanded_last_name(exp, [' '.join(last_parts)], title))
 
