@@ -258,7 +258,7 @@ class BibIndexFuzzyNameTokenizer(BibIndexTokenizer):
                 return [head]
             l = []
             l.extend([head + ' ' + tail[0]])
-            l.extend([head + '-' + tail[0]])
+            #l.extend([head + '-' + tail[0]])
             l.extend(_pair_items(head, tail[1:]))
             return l
 
@@ -275,7 +275,7 @@ class BibIndexFuzzyNameTokenizer(BibIndexTokenizer):
             l = []
             l.extend(_pair_items(head, _expand_name(tail[0])))
             l.extend([' '.join(_cons(head, tail)).strip()])
-            l.extend(['-'.join(_cons(head, tail)).strip()])
+            #l.extend(['-'.join(_cons(head, tail)).strip()])
             l.extend(_collect(head, tail[1:]))
             return l
 
