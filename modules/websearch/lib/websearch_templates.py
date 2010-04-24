@@ -23,7 +23,6 @@ __revision__ = "$Id$"
 
 import time
 import cgi
-import gettext
 import string
 import re
 import locale
@@ -44,7 +43,6 @@ from invenio.config import \
      CFG_BIBRANK_SHOW_CITATION_LINKS, \
      CFG_BIBRANK_SHOW_CITATION_STATS, \
      CFG_BIBRANK_SHOW_CITATION_GRAPHS, \
-     CFG_WEBSEARCH_INSTANT_BROWSE_RSS, \
      CFG_WEBSEARCH_RSS_TTL, \
      CFG_SITE_LANG, \
      CFG_SITE_NAME, \
@@ -4030,6 +4028,21 @@ class Template:
             link_url += '&amp;rm=citation';
             link_text = self.tmpl_nice_number(d_cites[coll], ln)
             out += '<td align="right"><a href="%s">%s</a></td>' % (link_url, link_text)
+        out += '</tr>'
+        return out
+
+    def tmpl_citesummary_h_index(self, d_h_factors, l_colls, ln=CFG_SITE_LANG):
+        """HTML citesummary format, h factor output. A part of the HCS suite."""
+        _ = gettext_set_language(ln)
+        out = "<tr><td></td></tr><tr><td><strong>%(msg_additional)s</strong> <small><small>[<a href=\"%(help_url)s\">?</a>]</small></small></td></tr>" % \
+              {'msg_additional': _("Additional Citation Metrics"),
+               'help_url': CFG_SITE_URL+'/help/citation-metric',}
+        out += '<tr><td>h-index <small><small>[<a href="'
+        # use ? help linking in the style of oai_repository_admin.py
+        out += '%s" target="_blank">'% (CFG_SITE_URL+'/help/citation-metric#citesummary_h-index')
+        out += '?</a>]</small></small></td>'
+        for coll, colldef in l_colls:
+            out += '<td align="right">%s</td>' % self.tmpl_nice_number(d_h_factors[coll], ln)
         out += '</tr>'
         return out
 
