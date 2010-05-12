@@ -24,18 +24,26 @@ on the input string as tokens suitable for word or phrase indexing.
 """
 
 import re
+from invenio.config import \
+     CFG_BIBINDEX_REMOVE_HTML_MARKUP, \
+     CFG_BIBINDEX_REMOVE_LATEX_MARKUP, \
+     CFG_BIBINDEX_CHARS_PUNCTUATION, \
+     CFG_BIBINDEX_CHARS_ALPHANUMERIC_SEPARATORS
+from invenio.htmlutils import remove_html_markup
 
-re_pattern_fuzzy_author_dots = re.compile(r'[\.\-]+')
-re_pattern_fuzzy_author_spaces = re.compile(r'\s+')
+from invenio.bibindex_engine_washer import strip_accents, \
+     lower_index_term, remove_latex_markup, \
+     apply_stemming_and_stopwords_and_length_check, \
+     wash_author_name
+
+latex_formula_re = re.compile(r'\$.*?\$|\\\[.*?\\\]')
+phrase_delimiter_re = re.compile(r'[\.:;\?\!]')
+space_cleaner_re = re.compile(r'\s+')
+re_block_punctuation_begin = re.compile(r"^"+CFG_BIBINDEX_CHARS_PUNCTUATION+"+")
+re_block_punctuation_end = re.compile(CFG_BIBINDEX_CHARS_PUNCTUATION+"+$")
+re_punctuation = re.compile(CFG_BIBINDEX_CHARS_PUNCTUATION)
+re_separators = re.compile(CFG_BIBINDEX_CHARS_ALPHANUMERIC_SEPARATORS)
 re_pattern_fuzzy_author_trigger = re.compile(r'[\s\,\.\-]')
-
-def wash_author_name(p):
-    """
-    Wash author name suitable for author searching.  Notably, replace
-    dots and hyphens with spaces, and collapse spaces.
-    """
-    out = re_pattern_fuzzy_author_dots.sub(" ", p)
-    return re_pattern_fuzzy_author_spaces.sub(" ", out)
 
 def author_name_requires_phrase_search(p):
     """
@@ -108,6 +116,113 @@ class BibIndexTokenizer(object):
         @rtype: list of string
         """
         raise NotImplementedError
+
+
+class BibIndexPhraseTokenizer(BibIndexTokenizer):
+    """The original phrase is returned"""
+
+    def tokenize(self, phrase):
+        """The phrases are not tokenized, but returned as they are"""
+        return [phrase]
+
+
+class BibIndexWordTokenizer(BibIndexTokenizer):
+    """A phrase is split into words"""
+
+    def __init__(self, stemming_language = None):
+        self.stemming_language = stemming_language
+
+    def tokenize(self, phrase):
+        """Return list of words found in PHRASE.  Note that the phrase is
+           split into groups depending on the alphanumeric characters and
+           punctuation characters definition present in the config file.
+        """
+        words = {}
+        formulas = []
+        if CFG_BIBINDEX_REMOVE_HTML_MARKUP and phrase.find("</") > -1:
+            phrase = remove_html_markup(phrase)
+        if CFG_BIBINDEX_REMOVE_LATEX_MARKUP:
+            formulas = latex_formula_re.findall(phrase)
+            phrase = remove_latex_markup(phrase)
+            phrase = latex_formula_re.sub(' ', phrase)
+        try:
+            phrase = lower_index_term(phrase)
+        except UnicodeDecodeError:
+            # too bad the phrase is not UTF-8 friendly, continue...
+            phrase = phrase.lower()
+        # 1st split phrase into blocks according to whitespace
+        for block in strip_accents(phrase).split():
+            # 2nd remove leading/trailing punctuation and add block:
+            block = re_block_punctuation_begin.sub("", block)
+            block = re_block_punctuation_end.sub("", block)
+            if block:
+                if self.stemming_language:
+                    block = apply_stemming_and_stopwords_and_length_check(block, self.stemming_language)
+                if block:
+                    words[block] = 1
+                # 3rd break each block into subblocks according to punctuation and add subblocks:
+                for subblock in re_punctuation.split(block):
+                    if self.stemming_language:
+                        subblock = apply_stemming_and_stopwords_and_length_check(subblock, self.stemming_language)
+                    if subblock:
+                        words[subblock] = 1
+                        # 4th break each subblock into alphanumeric groups and add groups:
+                        for alphanumeric_group in re_separators.split(subblock):
+                            if self.stemming_language:
+                                alphanumeric_group = apply_stemming_and_stopwords_and_length_check(alphanumeric_group, self.stemming_language)
+                            if alphanumeric_group:
+                                words[alphanumeric_group] = 1
+        for block in formulas:
+            words[block] = 1
+        return words.keys()
+
+
+class BibIndexPairTokenizer(BibIndexTokenizer):
+    """A phrase is split into pairs of words"""
+
+    def __init__(self, stemming_language = None):
+        self.stemming_language = stemming_language
+
+    def tokenize(self, phrase):
+        """Return list of words found in PHRASE.  Note that the phrase is
+           split into groups depending on the alphanumeric characters and
+           punctuation characters definition present in the config file.
+        """
+        words = {}
+        if CFG_BIBINDEX_REMOVE_HTML_MARKUP and phrase.find("</") > -1:
+            phrase = remove_html_markup(phrase)
+        if CFG_BIBINDEX_REMOVE_LATEX_MARKUP:
+            phrase = remove_latex_markup(phrase)
+            phrase = latex_formula_re.sub(' ', phrase)
+        try:
+            phrase = lower_index_term(phrase)
+        except UnicodeDecodeError:
+            # too bad the phrase is not UTF-8 friendly, continue...
+            phrase = phrase.lower()
+        # 1st split phrase into blocks according to whitespace
+        last_word = ''
+        for block in strip_accents(phrase).split():
+            # 2nd remove leading/trailing punctuation and add block:
+            block = re_block_punctuation_begin.sub("", block)
+            block = re_block_punctuation_end.sub("", block)
+            if block:
+                if self.stemming_language:
+                    block = apply_stemming_and_stopwords_and_length_check(block, self.stemming_language)
+                # 3rd break each block into subblocks according to punctuation and add subblocks:
+                for subblock in re_punctuation.split(block):
+                    if self.stemming_language:
+                        subblock = apply_stemming_and_stopwords_and_length_check(subblock, self.stemming_language)
+                    if subblock:
+                        # 4th break each subblock into alphanumeric groups and add groups:
+                        for alphanumeric_group in re_separators.split(subblock):
+                            if self.stemming_language:
+                                alphanumeric_group = apply_stemming_and_stopwords_and_length_check(alphanumeric_group, self.stemming_language)
+                            if alphanumeric_group:
+                                if last_word:
+                                    words['%s %s' % (last_word, alphanumeric_group)] = 1
+                                last_word = alphanumeric_group
+        return words.keys()
+
 
 class BibIndexExactNameTokenizer(BibIndexTokenizer):
     """
