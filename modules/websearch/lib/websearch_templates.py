@@ -23,7 +23,6 @@ __revision__ = "$Id$"
 
 import time
 import cgi
-import gettext
 import string
 import re
 import locale
@@ -44,7 +43,6 @@ from invenio.config import \
      CFG_BIBRANK_SHOW_CITATION_LINKS, \
      CFG_BIBRANK_SHOW_CITATION_STATS, \
      CFG_BIBRANK_SHOW_CITATION_GRAPHS, \
-     CFG_WEBSEARCH_INSTANT_BROWSE_RSS, \
      CFG_WEBSEARCH_RSS_TTL, \
      CFG_SITE_LANG, \
      CFG_SITE_NAME, \
@@ -65,7 +63,6 @@ from invenio.config import \
 
 from invenio.dbquery import run_sql
 from invenio.messages import gettext_set_language
-#from invenio.search_engine_config import CFG_EXPERIMENTAL_FEATURES
 from invenio.urlutils import make_canonical_urlargd, drop_default_urlargd, create_html_link, create_url
 from invenio.htmlutils import nmtoken_from_string
 from invenio.webinterface_handler import wash_urlargd
@@ -3390,7 +3387,7 @@ class Template:
         <webMaster>%(sitesupportemail)s</webMaster>
         <ttl>%(timetolive)s</ttl>%(previous_link)s%(next_link)s%(current_link)s%(total_results)s%(start_index)s%(items_per_page)s
         <image>
-            <url>%(siteurl)s/img/cds.png</url>
+            <url>%(siteurl)s/img/rss_logo.png</url>
             <title>%(sitename)s</title>
             <link>%(siteurl)s</link>
         </image>

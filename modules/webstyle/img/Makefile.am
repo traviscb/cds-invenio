@@ -42,7 +42,6 @@ img_DATA = add-small.png \
            blue_gradient.gif \
            bullet_toggle_minus.png \
            bullet_toggle_plus.png \
-           cds.png \
            circle_green.png \
            circle_red.png \
            cross_red.gif \
@@ -130,6 +129,7 @@ img_DATA = add-small.png \
            right-trans.gif \
            right.gif \
            rss.png \
+		   rss_logo.png \
            sb.gif \
            sbm_guide_accessnumber.png \
            sbm_guide_approvals.png \
