@@ -54,6 +54,7 @@ from invenio.config import \
      CFG_WEBSEARCH_FIELDS_CONVERT, \
      CFG_WEBSEARCH_NB_RECORDS_TO_SORT, \
      CFG_WEBSEARCH_SEARCH_CACHE_SIZE, \
+     CFG_WEBSEARCH_FIELDS_IDXPAIRS,\
      CFG_WEBSEARCH_USE_JSMATH_FOR_FORMATS, \
      CFG_WEBSEARCH_USE_ALEPH_SYSNOS, \
      CFG_WEBSEARCH_DEF_RECORDS_IN_GROUPS, \
@@ -73,7 +74,9 @@ from invenio.bibrecord import create_record, record_get_field_instances
 from invenio.bibrank_record_sorter import get_bibrank_methods, rank_records, is_method_valid
 from invenio.bibrank_downloads_similarity import register_page_view_event, calculate_reading_similarity_list
 from invenio.bibindex_engine_stemmer import stem
-from invenio.bibindex_engine_tokenizer import wash_author_name, author_name_requires_phrase_search
+from invenio.bibindex_engine_tokenizer import author_name_requires_phrase_search, \
+     BibIndexPairTokenizer
+from invenio.bibindex_engine_washer import wash_index_term, strip_accents, lower_index_term, wash_author_name
 from invenio.bibformat import format_record, format_records, get_output_format_content_type, create_excel
 from invenio.bibformat_config import CFG_BIBFORMAT_USE_OLD_BIBFORMAT
 from invenio.bibrank_downloads_grapher import create_download_history_graph_and_box
@@ -141,42 +144,6 @@ re_pattern_short_words = re.compile(r'([\s\"]\w{1,3})[\*\%]+')
 re_pattern_space = re.compile("__SPACE__")
 re_pattern_today = re.compile("\$TODAY\$")
 re_pattern_parens = re.compile(r'\([^\)]+\s+[^\)]+\)')
-re_unicode_lowercase_a = re.compile(unicode(r"(?u)[áàäâãå]", "utf-8"))
-re_unicode_lowercase_ae = re.compile(unicode(r"(?u)[æ]", "utf-8"))
-re_unicode_lowercase_e = re.compile(unicode(r"(?u)[éèëê]", "utf-8"))
-re_unicode_lowercase_i = re.compile(unicode(r"(?u)[íìïî]", "utf-8"))
-re_unicode_lowercase_o = re.compile(unicode(r"(?u)[óòöôõø]", "utf-8"))
-re_unicode_lowercase_u = re.compile(unicode(r"(?u)[úùüû]", "utf-8"))
-re_unicode_lowercase_y = re.compile(unicode(r"(?u)[ýÿ]", "utf-8"))
-re_unicode_lowercase_c = re.compile(unicode(r"(?u)[çć]", "utf-8"))
-re_unicode_lowercase_n = re.compile(unicode(r"(?u)[ñ]", "utf-8"))
-re_unicode_uppercase_a = re.compile(unicode(r"(?u)[ÁÀÄÂÃÅ]", "utf-8"))
-re_unicode_uppercase_ae = re.compile(unicode(r"(?u)[Æ]", "utf-8"))
-re_unicode_uppercase_e = re.compile(unicode(r"(?u)[ÉÈËÊ]", "utf-8"))
-re_unicode_uppercase_i = re.compile(unicode(r"(?u)[ÍÌÏÎ]", "utf-8"))
-re_unicode_uppercase_o = re.compile(unicode(r"(?u)[ÓÒÖÔÕØ]", "utf-8"))
-re_unicode_uppercase_u = re.compile(unicode(r"(?u)[ÚÙÜÛ]", "utf-8"))
-re_unicode_uppercase_y = re.compile(unicode(r"(?u)[Ý]", "utf-8"))
-re_unicode_uppercase_c = re.compile(unicode(r"(?u)[ÇĆ]", "utf-8"))
-re_unicode_uppercase_n = re.compile(unicode(r"(?u)[Ñ]", "utf-8"))
-re_latex_lowercase_a = re.compile("\\\\[\"H'`~^vu=k]\{?a\}?")
-re_latex_lowercase_ae = re.compile("\\\\ae\\{\\}?")
-re_latex_lowercase_e = re.compile("\\\\[\"H'`~^vu=k]\\{?e\\}?")
-re_latex_lowercase_i = re.compile("\\\\[\"H'`~^vu=k]\\{?i\\}?")
-re_latex_lowercase_o = re.compile("\\\\[\"H'`~^vu=k]\\{?o\\}?")
-re_latex_lowercase_u = re.compile("\\\\[\"H'`~^vu=k]\\{?u\\}?")
-re_latex_lowercase_y = re.compile("\\\\[\"']\\{?y\\}?")
-re_latex_lowercase_c = re.compile("\\\\['uc]\\{?c\\}?")
-re_latex_lowercase_n = re.compile("\\\\[c'~^vu]\\{?n\\}?")
-re_latex_uppercase_a = re.compile("\\\\[\"H'`~^vu=k]\\{?A\\}?")
-re_latex_uppercase_ae = re.compile("\\\\AE\\{?\\}?")
-re_latex_uppercase_e = re.compile("\\\\[\"H'`~^vu=k]\\{?E\\}?")
-re_latex_uppercase_i = re.compile("\\\\[\"H'`~^vu=k]\\{?I\\}?")
-re_latex_uppercase_o = re.compile("\\\\[\"H'`~^vu=k]\\{?O\\}?")
-re_latex_uppercase_u = re.compile("\\\\[\"H'`~^vu=k]\\{?U\\}?")
-re_latex_uppercase_y = re.compile("\\\\[\"']\\{?Y\\}?")
-re_latex_uppercase_c = re.compile("\\\\['uc]\\{?C\\}?")
-re_latex_uppercase_n = re.compile("\\\\[c'~^vu]\\{?N\\}?")
 
 class RestrictedCollectionDataCacher(DataCacher):
     def __init__(self):
@@ -1336,98 +1303,6 @@ def wash_colls(cc, c, split_colls=0, verbose=0):
 
     return (cc, colls_out_for_display, colls_out, hosted_colls_out, debug)
 
-def strip_accents(x):
-    """Strip accents in the input phrase X (assumed in UTF-8) by replacing
-    accented characters with their unaccented cousins (e.g. é by e).
-    Return such a stripped X."""
-    x = re_latex_lowercase_a.sub("a", x)
-    x = re_latex_lowercase_ae.sub("ae", x)
-    x = re_latex_lowercase_e.sub("e", x)
-    x = re_latex_lowercase_i.sub("i", x)
-    x = re_latex_lowercase_o.sub("o", x)
-    x = re_latex_lowercase_u.sub("u", x)
-    x = re_latex_lowercase_y.sub("x", x)
-    x = re_latex_lowercase_c.sub("c", x)
-    x = re_latex_lowercase_n.sub("n", x)
-    x = re_latex_uppercase_a.sub("A", x)
-    x = re_latex_uppercase_ae.sub("AE", x)
-    x = re_latex_uppercase_e.sub("E", x)
-    x = re_latex_uppercase_i.sub("I", x)
-    x = re_latex_uppercase_o.sub("O", x)
-    x = re_latex_uppercase_u.sub("U", x)
-    x = re_latex_uppercase_y.sub("Y", x)
-    x = re_latex_uppercase_c.sub("C", x)
-    x = re_latex_uppercase_n.sub("N", x)
-
-    # convert input into Unicode string:
-    try:
-        y = unicode(x, "utf-8")
-    except:
-        return x # something went wrong, probably the input wasn't UTF-8
-    # asciify Latin-1 lowercase characters:
-    y = re_unicode_lowercase_a.sub("a", y)
-    y = re_unicode_lowercase_ae.sub("ae", y)
-    y = re_unicode_lowercase_e.sub("e", y)
-    y = re_unicode_lowercase_i.sub("i", y)
-    y = re_unicode_lowercase_o.sub("o", y)
-    y = re_unicode_lowercase_u.sub("u", y)
-    y = re_unicode_lowercase_y.sub("y", y)
-    y = re_unicode_lowercase_c.sub("c", y)
-    y = re_unicode_lowercase_n.sub("n", y)
-    # asciify Latin-1 uppercase characters:
-    y = re_unicode_uppercase_a.sub("A", y)
-    y = re_unicode_uppercase_ae.sub("AE", y)
-    y = re_unicode_uppercase_e.sub("E", y)
-    y = re_unicode_uppercase_i.sub("I", y)
-    y = re_unicode_uppercase_o.sub("O", y)
-    y = re_unicode_uppercase_u.sub("U", y)
-    y = re_unicode_uppercase_y.sub("Y", y)
-    y = re_unicode_uppercase_c.sub("C", y)
-    y = re_unicode_uppercase_n.sub("N", y)
-    # return UTF-8 representation of the Unicode string:
-    return y.encode("utf-8")
-
-def wash_index_term(term, max_char_length=50, lower_term=True):
-    """
-    Return washed form of the index term TERM that would be suitable
-    for storing into idxWORD* tables.  I.e., lower the TERM if
-    LOWER_TERM is True, and truncate it safely to MAX_CHAR_LENGTH
-    UTF-8 characters (meaning, in principle, 4*MAX_CHAR_LENGTH bytes).
-
-    The function works by an internal conversion of TERM, when needed,
-    from its input Python UTF-8 binary string format into Python
-    Unicode format, and then truncating it safely to the given number
-    of UTF-8 characters, without possible mis-truncation in the middle
-    of a multi-byte UTF-8 character that could otherwise happen if we
-    would have been working with UTF-8 binary representation directly.
-
-    Note that MAX_CHAR_LENGTH corresponds to the length of the term
-    column in idxINDEX* tables.
-    """
-    if lower_term:
-        washed_term = unicode(term, 'utf-8').lower()
-    else:
-        washed_term = unicode(term, 'utf-8')
-    if len(washed_term) <= max_char_length:
-        # no need to truncate the term, because it will fit
-        # nicely even if it uses four-byte UTF-8 characters
-        return washed_term.encode('utf-8')
-    else:
-        # truncate the term in a safe position:
-        return washed_term[:max_char_length].encode('utf-8')
-
-def lower_index_term(term):
-    """
-    Return safely lowered index term TERM.  This is done by converting
-    to UTF-8 first, because standard Python lower() function is not
-    UTF-8 safe.  To be called by both the search engine and the
-    indexer when appropriate (e.g. before stemming).
-
-    In case of problems with UTF-8 compliance, this function raises
-    UnicodeDecodeError, so the client code may want to catch it.
-    """
-    return unicode(term, 'utf-8').lower().encode('utf-8')
-
 def wash_output_format(format):
     """Wash output format FORMAT.  Currently only prevents input like
     'of=9' for backwards-compatible format that prints certain fields
@@ -1801,11 +1676,21 @@ def search_pattern(req=None, p=None, f=None, m=None, ap=0, of="id", verbose=0, l
             if re.search(r'[^a-zA-Z0-9\s\:]', bsu_p):
                 if bsu_m == 'a': # is it ACC query?
                     bsu_pn = re.sub(r'[^a-zA-Z0-9\s\:]+', "*", bsu_p)
+                elif bsu_p.startswith('%') and bsu_p.endswith('%'): # is it partial phrase query?
+                    bsu_pn = re.sub(r'[^a-zA-Z0-9\s\:]+', " ", bsu_p)
+                    bsu_m = 'w'
                 else: # it is WRD query
                     bsu_pn = re.sub(r'[^a-zA-Z0-9\s\:]+', " ", bsu_p)
                 if verbose and of.startswith('h') and req:
                     print_warning(req, "Trying (%s,%s,%s)" % (cgi.escape(bsu_pn), cgi.escape(bsu_f), cgi.escape(bsu_m)))
-                basic_search_unit_hitset = search_pattern(req=None, p=bsu_pn, f=bsu_f, m=bsu_m, of="id", ln=ln, wl=wl)
+                if bsu_p.startswith('%') and bsu_p.endswith('%'):#for partial phrase, if no hits, continue doing boolean
+                    if of.startswith('h'):
+                        print_warning(req, _("No exact match found for %(x_query1)s, using %(x_query2)s instead...") % \
+                                      {'x_query1': "<em>" + cgi.escape(bsu_p) + "</em>",
+                                       'x_query2': "<em>" + cgi.escape(bsu_pn) + "</em>"})
+                    return search_pattern(req, p=bsu_pn, f=bsu_f, m=bsu_m, of='hb', ln=ln)
+                basic_search_unit_hitset = search_pattern(req=None, p=bsu_pn, f=bsu_f, m=bsu_m, of="id", ln=ln)
+                print_warning(req, "bsu_p = %s bsu_m = %s %s" % (cgi.escape(bsu_pn), cgi.escape(bsu_m), len(basic_search_unit_hitset)))
                 if len(basic_search_unit_hitset) > 0:
                     # we retain the new unit instead
                     if of.startswith('h'):
@@ -1972,11 +1857,18 @@ def search_unit(p, f=None, m=None, wl=0):
         set = search_unit_in_bibrec(p, p, 'c')
     elif f == 'datemodified':
         set = search_unit_in_bibrec(p, p, 'm')
+    if p.startswith('%') and p.endswith('%'):
+        #if we are doing partial phrase matching we should look in the idxpair tables
+        set = search_unit_in_idxpairs(p, f, m)
     if m and (m.startswith('a') or m.startswith('r')):
         # we are doing either phrase search or regexp search
         index_id = get_index_id_from_field(f)
         if index_id != 0:
-            set = search_unit_in_idxphrases(p, f, m, wl)
+            if m == 'a' and ((f in CFG_WEBSEARCH_FIELDS_IDXPAIRS) or ('*' in CFG_WEBSEARCH_FIELDS_IDXPAIRS)):
+                #for exact match on the admin configured fields we are searching in the pair tables
+                set = search_unit_in_idxpairs(p, f, m)
+            else:
+                set = search_unit_in_idxphrases(p, f, m)
         else:
             set = search_unit_in_bibxxx(p, f, m, wl)
     elif p.startswith("cited:"):
@@ -1986,6 +1878,43 @@ def search_unit(p, f=None, m=None, wl=0):
         # we are doing bibwords search by default
         set = search_unit_in_bibwords(p, f, m, wl=wl)
     return set
+
+def search_unit_in_idxpairs(p, f, type):
+    """Searches for pair 'p' inside idxPAIR table for field 'f' and
+    returns hitset of recIDs found."""
+    result_set = HitSet()
+    #determine the idxPAIR table to read from
+    index_id = get_index_id_from_field(f)
+    if not index_id:
+        return HitSet()
+    stemming_language = get_index_stemming_language(index_id)
+    pairs_tokenizer = BibIndexPairTokenizer(stemming_language)
+    idxpair_table = "idxPAIR%02dF" % index_id
+    query_addons = "= %s"
+    if p.startswith("%") and p.endswith("%"):
+        word_pairs = pairs_tokenizer.tokenize(p[1:-1])
+    else:
+        word_pairs = pairs_tokenizer.tokenize(p)
+    
+    if len(word_pairs) == 0:
+        return search_unit_in_bibwords(p, f)
+    first_results = 1 # flag to know if it's the first set of results or not
+    for word_pair in word_pairs:
+        query_params = (word_pair, )
+        # perform search:
+        result = run_sql("SELECT term, hitlist FROM %s WHERE term %s"
+                     % (idxpair_table, query_addons), query_params)
+        if result and result[0] and result[0][1]:
+            hitset = HitSet(result[0][1])
+            # add the results:
+            if first_results == 1:
+                result_set.union_update(hitset)
+                first_results = 0
+            else:
+                result_set.intersection_update(hitset)
+        else:
+            return HitSet()
+    return result_set
 
 def search_unit_in_bibwords(word, f, m=None, decompress=zlib.decompress, wl=0):
     """Searches for 'word' inside bibwordsX table for field 'f' and returns hitset of recIDs."""
@@ -2429,13 +2358,12 @@ def create_nearest_terms_box(urlargd, p, f, t='w', n=5, ln=CFG_SITE_LANG, intro_
                         argd[px] = string.replace(argd_px, p, term)
                         break
                 else:
-                    if string.find(argd_px, f+':'+p) > -1:
-                        argd[px] = string.replace(argd_px, f+':'+p, f+':'+term)
-                        break
-                    elif string.find(argd_px, f+':"'+p+'"') > -1:
-                        argd[px] = string.replace(argd_px, f+':"'+p+'"', f+':"'+term+'"')
-                        break
-
+                    if string.find(argd_px, f + ':') > -1:
+                        if string.find(argd_px, p) > -1:
+                            argd[fx] = f
+                            aux = string.replace(argd_px, f + ":", "")
+                            argd[px] = string.replace(aux, p, term)
+                            break
         terminfo.append((term, hits, argd))
 
     intro = ""
