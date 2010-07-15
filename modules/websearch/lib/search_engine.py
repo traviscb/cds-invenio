@@ -101,7 +101,7 @@ from invenio.webuser import getUid, collect_user_info
 from invenio.webpage import pageheaderonly, pagefooteronly, create_error_box
 from invenio.messages import gettext_set_language
 from invenio.search_engine_query_parser import SearchQueryParenthesisedParser, \
-InvenioWebSearchQueryParserException, SpiresToInvenioSyntaxConverter
+InvenioWebSearchMismatchedParensError, SpiresToInvenioSyntaxConverter
 
 from invenio import webinterface_handler_config as apache
 
@@ -1931,12 +1931,12 @@ def search_pattern_parenthesised(req=None, p=None, f=None, m=None, ap=0, of="id"
         return result_hitset
 
     # If searching with parenteses fails, perform search ignoring parentheses
-    except InvenioWebSearchQueryParserException:
+    except InvenioWebSearchMismatchedParensError:
 
-        print_warning(req, _("Nested or mismatched parentheses detected. Ignoring all parentheses in the query..."))
+        print_warning(req, _("Mismatched parentheses detected. Ignoring all parentheses in the query..."))
 
         # remove the parentheses in the query. Current implementation removes all the parentheses,
-        # but it could be improved to romove only these that are not insede quotes
+        # but it could be improved to romove only these that are not inside quotes
         p = p.replace('(', ' ')
         p = p.replace(')', ' ')
 
