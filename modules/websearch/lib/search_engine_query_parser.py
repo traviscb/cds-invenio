@@ -30,6 +30,31 @@ from invenio.logic import to_cnf
 NameScanner = FNT()
 
 
+def tweak_str_by_regex_match(regexp, matchTweakFunc, diffTweakFunc, s, init = ''):
+    """Repeatedly apply regexp to s; tweak matches and non-matches.
+
+    * regexp:         a compiled regular expression to match over s
+    * matchTweakFunc: a function of one parameter which accepts a match object
+                      and returns a string
+    * diffTweakFunc:  a function of one parameter which accepts a string and
+                      returns a string
+    * s:              the string to be processed
+    * init:           defaults to ''; if given, initializes return value
+
+    returns a string constructed from repeatedly applying matchTweakFunc to
+    match portions and repeatedly applying diffTweakFunc to non-matching 
+    portions.
+    """
+    retval = init
+    pos = 0
+    for match in regexp.finditer(s):
+        retval += diffTweakFunc(s[pos : match.start()])
+        retval += matchTweakFunc(match)
+        pos = match.end()
+    retval += diffTweakFunc(s[pos : ])
+    return retval
+
+
 class InvenioWebSearchMismatchedParensError(Exception):
     """Exception for parse errors caused by mismatched parentheses."""
     def __init__(self, message):
@@ -200,6 +225,9 @@ class SearchQueryParenthesisedParser(object):
         current_position = 0
         re_quotepairs = re.compile(r'[^\\](".*?[^\\]")|[^\\](\'.*?[^\\]\')')
 
+        # FIXME: Can we use tweak_str_by_regex_match here?
+        #        No, because of the first stanza; if we didn't support 
+        #        escaping quotes, then yes.
         for match in re_quotepairs.finditer(query):
             # special case for when our regexp captures a single char before
             # the quotes.  This is faster (in development time and code)
@@ -771,20 +799,18 @@ class SpiresToInvenioSyntaxConverter:
         that give similar results to the spires search.
         """
 
-        # result of the replacement
-        result = ''
-        current_position = 0
-        for match in self._re_author_match.finditer(query):
-            result += query[current_position : match.start() ]
+        def get_author_atoms(match):
             scanned_name = NameScanner.scan(match.group('name'))
             author_atoms = self._create_author_search_pattern_from_fuzzy_name_dict(scanned_name)
             if author_atoms.find(' ') == -1:
-                result += author_atoms + ' '
+                return author_atoms + ' '
             else:
-                result += '(' + author_atoms + ') '
-            current_position = match.end()
-        result += query[current_position : len(query)]
-        return result
+                return '(' + author_atoms + ') '
+
+        return tweak_str_by_regex_match(self._re_author_match, 
+                                        get_author_atoms, 
+                                        lambda x: x, 
+                                        query)
 
     def _create_author_search_pattern_from_fuzzy_name_dict(self, fuzzy_name):
         """Creates an invenio search pattern for an author from a fuzzy name dict"""
@@ -844,34 +870,16 @@ class SpiresToInvenioSyntaxConverter:
 
         Replacements are done only in content that is not in quotes."""
 
-        # result of the replacement
-        result = ""
-        current_position = 0
+        def append_quoted_content_group(match):
+            if match.group(1):         # double quotes
+                return match.group(1)
+            if match.group(2):         # single quotes
+                return match.group(2)
 
-        for match in self._re_quotes_match.finditer(query):
-            # clean the content after the previous quotes and before current quotes
-            cleanable_content = query[current_position : match.start()]
-            cleanable_content = self._replace_all_spires_keywords_in_string(cleanable_content)
-
-            # get the content in the quotes (group one matches double
-            # quotes, group 2 singles)
-            if match.group(1):
-                quoted_content = match.group(1)
-            elif match.group(2):
-                quoted_content = match.group(2)
-
-            # append the processed content to the result
-            result = result + cleanable_content + quoted_content
-
-            # move current position at the end of the processed content
-            current_position = match.end()
-
-        # clean the content from the last appearance of quotes till the end of the query
-        cleanable_content = query[current_position : len(query)]
-        cleanable_content = self._replace_all_spires_keywords_in_string(cleanable_content)
-        result = result + cleanable_content
-
-        return result
+        return tweak_str_by_regex_match(self._re_quotes_match,
+                                        append_quoted_content_group,
+                                        self._replace_all_spires_keywords_in_string,
+                                        query)
 
     def _replace_all_spires_keywords_in_string(self, query):
         """Replaces all SPIRES keywords in the string with their
