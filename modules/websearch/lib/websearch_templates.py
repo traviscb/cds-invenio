@@ -4095,38 +4095,41 @@ class Template:
     def tmpl_citesummary_histogram(self, cite_data, bins, ln=CFG_SITE_LANG):
         _ = gettext_set_language(ln)
         out = """
-        <div id="cs_hist" style="height:400px;width:300px; "></div>"""
+        <div id="citesummary_histogram" style="height:400px;width:300px; "></div>"""
         out += """
-        <script language="javascript" type="text/javascript">"""
+        <script type="text/javascript">
+        """
+
         out += """
-        plot1 = $.jqplot('cs_hist',["""
+        plot1 = $.plot('citesummary_histogram',["""
 
         # slick trick to transpose dictionary...
-        labels,data = zip(*cite_data.iteritems())
+#        labels,data = zip(*cite_data.iteritems())
+        lines = []
+        for label, data in cite_data.iteritems():
+            line = "{label:'" + label + "', bars:{show:true},"
+            i = 0
+            series = []
+            for point in data:
+                series.append([i,point])
+            line += "["+','.join(map(str,series)) + "]}"
+            lines.append(line)
 
-        out += ','.join(map(str,data))
+        out += ','.join(lines)
         out += """], { """
         out += """
-    legend:{show:true, location:'ne', xoffset:55},
     title:'Citation Histogram',
-    seriesDefaults:{
-        renderer:$.jqplot.BarRenderer,
-        rendererOptions:{barPadding: 8, barMargin: 20}
-    },
-    series:[
+    xaxis:{ ticks:
     """
-        out += ','.join(["{label:'"+ x + "'}" for x in labels])
-        out += """
-    ],
-    axes:{
-        xaxis:{
-            renderer:$.jqplot.CategoryAxisRenderer,
-            ticks:"""
-        out += str(sorted(bins))
+        series = []
+        i = 0
+        for point in sorted(bins):
+            series.append([i,point])
+        out += '[' + ','.join(map(str,series)) + ']' 
         out += """
         },
-        yaxis:{min:0}
-    }});
+
+    });
 
         </script>"""
         return out

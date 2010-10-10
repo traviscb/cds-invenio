@@ -27,7 +27,7 @@ __lastupdated__ = """$Date$"""
 __revision__ = "$Id$"
 
 from invenio.config import CFG_INSPIRE_SITE
-from invenio.bibrank_citation_searcher import get_cited_by_list 
+from invenio.bibrank_citation_searcher import get_cited_by_weight
 import search_engine
 import invenio.template
 websearch_templates = invenio.template.load('websearch')
@@ -82,7 +82,7 @@ def summarize_records(recids, of, ln, searchpattern="", searchfield="", req=None
             d_total_cites[coll] = 0
             d_avg_cites[coll] = 0
             d_recid_citecount_l[coll] = []
-            d_recid_citers[coll] =  get_cite_counts(d_recids[coll])
+            d_recid_citers[coll] =  get_cited_by_weight(d_recids[coll])
             for recid, numcites in d_recid_citers[coll]:
                 d_total_cites[coll] += numcites
                 d_recid_citecount_l[coll].append((recid, numcites))
@@ -133,7 +133,7 @@ def summarize_records(recids, of, ln, searchpattern="", searchfield="", req=None
 
     elif of == 'xcs':
         # this is XML cite summary
-        citedbylist = get_cite_counts(recids)
+        citedbylist = get_cited_by_weight(recids)
         return print_citation_summary_xml(citedbylist)
 
 #for citation summary, code xcs/hcs (unless changed)
@@ -192,5 +192,3 @@ def calculate_citations(citedbylist):
     return alldict
 
 
-def get_cite_counts(recids):
-    return [(x,len(y)) for (x,y) in get_cited_by_list(recids)]
