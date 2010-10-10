@@ -158,6 +158,10 @@ install-jquery-plugins: install-jquery-plugins
 	wget http://jquery-multifile-plugin.googlecode.com/svn/trunk/jquery.MultiFile.pack.js && \
 	wget http://plugins.jquery.com/files/jquery.autogrow-1.2.2.zip && \
 	wget http://tablesorter.com/jquery.tablesorter.zip && \
+	wget http://bitbucket.org/cleonello/jqplot/downloads/jquery.jqplot.0.9.7r618.tar.gz && \
+	tar vxzf jquery.jqplot.0.9.7r618.tar.gz && \
+	mv dist/jquery.jqplot.min.* . && \
+	rm -rf dist && rm jquery.jqplot.0.9.7r618.tar.gz && \
 	wget http://www.uploadify.com/_files/jquery.uploadify-v2.1.0.zip && \
 	unzip jquery.tablesorter.zip && \
 	rm jquery.tablesorter.zip && \
