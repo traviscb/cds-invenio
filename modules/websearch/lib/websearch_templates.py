@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ -*- coding: utf-8 -*-
 
 ## This file is part of CDS Invenio.
 ## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 CERN.
@@ -4090,6 +4090,43 @@ class Template:
         out += """<tr><td><strong>%(msg_breakdown)s</strong></td></tr>""" % \
                {'msg_breakdown': _("Breakdown of papers by citations:"),}
         return out
+
+
+    def tmpl_citesummary_histogram(self, cite_data, bins, ln=CFG_CITE_LANG):
+        _ = gettext_set_language(ln)
+        out = """<div id="cs_hist" style="height:400px;width:300px; "></div>"""
+        out += """<script language="javascript" type="text/javascript">"""
+        out += """plot1 = $.jqplot('cs_hist',["""
+
+        # slick trick to transpose dictionary...
+        labels,data = zip(*cite_data.iteritems())
+
+        out += ','.join(map(str,data))
+        out += """], { """
+        out += """
+    legend:{show:true, location:'ne', xoffset:55},
+    title:'Citation Histogram',
+    seriesDefaults:{
+        renderer:$.jqplot.BarRenderer,
+        rendererOptions:{barPadding: 8, barMargin: 20}
+    },
+    series:[
+    """
+        out += ','.join(["{label:'"+ x + "'}" for x in labels])
+        out += """
+    ],
+    axes:{
+        xaxis:{
+            renderer:$.jqplot.CategoryAxisRenderer,
+            ticks:"""
+        out += str(bins)
+        out += """
+        },
+        yaxis:{min:0}
+    }
+
+        """
+
 
     def tmpl_citesummary_breakdown_by_fame(self, d_cites, low, high, fame, l_colls, searchpattern, searchfield, ln=CFG_SITE_LANG):
         """HTML citesummary format, breakdown by fame. A part of HCS format suite."""

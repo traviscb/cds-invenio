@@ -27,7 +27,7 @@ __lastupdated__ = """$Date$"""
 __revision__ = "$Id$"
 
 from invenio.config import CFG_INSPIRE_SITE
-from invenio.bibrank_citation_searcher import get_cited_by_list
+from invenio.bibrank_citation_searcher import get_cited_by_list 
 import search_engine
 import invenio.template
 websearch_templates = invenio.template.load('websearch')
@@ -82,11 +82,10 @@ def summarize_records(recids, of, ln, searchpattern="", searchfield="", req=None
             d_total_cites[coll] = 0
             d_avg_cites[coll] = 0
             d_recid_citecount_l[coll] = []
-            d_recid_citers[coll] =  get_cited_by_list(d_recids[coll])
-            for recid, lciters in d_recid_citers[coll]:
-                if lciters:
-                    d_total_cites[coll] += len(lciters)
-                    d_recid_citecount_l[coll].append((recid, len(lciters)))
+            d_recid_citers[coll] =  get_cite_counts(d_recids[coll])
+            for recid, numcites in d_recid_citers[coll]:
+                d_total_cites[coll] += numcites
+                d_recid_citecount_l[coll].append((recid, numcites))
             if d_total_cites[coll] != 0:
                 d_avg_cites[coll] = d_total_cites[coll] * 1.0 / d_total_recs[coll]
         req.write(websearch_templates.tmpl_citesummary_overview(d_total_cites, d_avg_cites, CFG_CITESUMMARY_COLLECTIONS, ln))
@@ -94,15 +93,16 @@ def summarize_records(recids, of, ln, searchpattern="", searchfield="", req=None
         # 3) hcs break down by fame:
         for low, high, fame in CFG_CITESUMMARY_FAME_THRESHOLDS:
             d_cites = {}
+            bins.append(low)
             for coll, colldef in CFG_CITESUMMARY_COLLECTIONS:
                 d_cites[coll] = 0
-                for recid, lciters in d_recid_citers[coll]:
-                    numcites = 0
-                    if lciters:
-                        numcites = len(lciters)
+                for recid, numcites in d_recid_citers[coll]:
                     if numcites >= low and numcites <= high:
                         d_cites[coll] += 1
+                hist[coll].append(d_cites[coll])
             req.write(websearch_templates.tmpl_citesummary_breakdown_by_fame(d_cites, low, high, fame, CFG_CITESUMMARY_COLLECTIONS, searchpattern, searchfield, ln))
+        req.write(websearch_templates.tmpl_citesummary_histogram(hist,bins,ln))
+
 
         # 4) hcs calculate h index
         d_h_factors = {}
@@ -129,7 +129,7 @@ def summarize_records(recids, of, ln, searchpattern="", searchfield="", req=None
 
     elif of == 'xcs':
         # this is XML cite summary
-        citedbylist = get_cited_by_list(recids)
+        citedbylist = get_cite_counts(recids)
         return print_citation_summary_xml(citedbylist)
 
 #for citation summary, code xcs/hcs (unless changed)
@@ -163,10 +163,7 @@ def calculate_citations(citedbylist):
     totalcites = 0
     avgcites = 0
     reciddict = {}
-    for recid, cites in citedbylist:
-        numcites = 0
-        if cites:
-            numcites = len(cites)
+    for recid, numcites in citedbylist:
         totalcites = totalcites + numcites
         #take the numbers in CFG_CITESUMMARY_FAME_THRESHOLDS
         for low, high, name in CFG_CITESUMMARY_FAME_THRESHOLDS:
@@ -191,3 +188,5 @@ def calculate_citations(citedbylist):
     return alldict
 
 
+def get_cite_counts(recids):
+    return [(x,len(y)) for (x,y) in get_citedby_list(recids)]
