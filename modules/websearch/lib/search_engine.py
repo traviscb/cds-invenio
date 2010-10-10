@@ -765,9 +765,14 @@ def page_start(req, of, cc, aas, ln, uid, title_message=None,
     };
   </script>
   <script src='/jsMath/easy/invenio-jsmath.js' type='text/javascript'></script>
+
 """
         else:
             metaheaderadd = ''
+
+        metaheaderadd += """
+          <script src='/jquery.jqplot.min.js' type='text/javascript'></script>
+          <script src='/jqplot.plugins/jqplot.barRenderer.min.js' type='text/javascript'></script>"""
 
         ## generate navtrail:
         navtrail = create_navtrail_links(cc, aas, ln)

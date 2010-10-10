@@ -1,4 +1,4 @@
- -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 ## This file is part of CDS Invenio.
 ## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 CERN.
@@ -4092,7 +4092,7 @@ class Template:
         return out
 
 
-    def tmpl_citesummary_histogram(self, cite_data, bins, ln=CFG_CITE_LANG):
+    def tmpl_citesummary_histogram(self, cite_data, bins, ln=CFG_SITE_LANG):
         _ = gettext_set_language(ln)
         out = """<div id="cs_hist" style="height:400px;width:300px; "></div>"""
         out += """<script language="javascript" type="text/javascript">"""

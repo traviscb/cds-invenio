@@ -189,4 +189,4 @@ def calculate_citations(citedbylist):
 
 
 def get_cite_counts(recids):
-    return [(x,len(y)) for (x,y) in get_citedby_list(recids)]
+    return [(x,len(y)) for (x,y) in get_cited_by_list(recids)]
