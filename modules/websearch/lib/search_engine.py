@@ -771,8 +771,11 @@ def page_start(req, of, cc, aas, ln, uid, title_message=None,
             metaheaderadd = ''
 
         metaheaderadd += """
-          <script src='/jquery.jqplot.min.js' type='text/javascript'></script>
-          <script src='/jqplot.plugins/jqplot.barRenderer.min.js' type='text/javascript'></script>"""
+          <script src='/js/jquery.jqplot.min.js' type='text/javascript'></script>
+          <script src='/js/jqplot.plugins/jqplot.categoryAxisRenderer.min.js'  type='text/javascript'></script>
+          <script src='/js/jqplot.plugins/jqplot.barRenderer.min.js'          type='text/javascript'></script>
+          """
+
 
         ## generate navtrail:
         navtrail = create_navtrail_links(cc, aas, ln)

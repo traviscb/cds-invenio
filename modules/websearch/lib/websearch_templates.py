@@ -4094,9 +4094,12 @@ class Template:
 
     def tmpl_citesummary_histogram(self, cite_data, bins, ln=CFG_SITE_LANG):
         _ = gettext_set_language(ln)
-        out = """<div id="cs_hist" style="height:400px;width:300px; "></div>"""
-        out += """<script language="javascript" type="text/javascript">"""
-        out += """plot1 = $.jqplot('cs_hist',["""
+        out = """
+        <div id="cs_hist" style="height:400px;width:300px; "></div>"""
+        out += """
+        <script language="javascript" type="text/javascript">"""
+        out += """
+        plot1 = $.jqplot('cs_hist',["""
 
         # slick trick to transpose dictionary...
         labels,data = zip(*cite_data.iteritems())
@@ -4119,14 +4122,14 @@ class Template:
         xaxis:{
             renderer:$.jqplot.CategoryAxisRenderer,
             ticks:"""
-        out += str(bins)
+        out += str(sorted(bins))
         out += """
         },
         yaxis:{min:0}
-    }
+    }});
 
-        """
-
+        </script>"""
+        return out
 
     def tmpl_citesummary_breakdown_by_fame(self, d_cites, low, high, fame, l_colls, searchpattern, searchfield, ln=CFG_SITE_LANG):
         """HTML citesummary format, breakdown by fame. A part of HCS format suite."""

@@ -91,6 +91,10 @@ def summarize_records(recids, of, ln, searchpattern="", searchfield="", req=None
         req.write(websearch_templates.tmpl_citesummary_overview(d_total_cites, d_avg_cites, CFG_CITESUMMARY_COLLECTIONS, ln))
 
         # 3) hcs break down by fame:
+        bins = []
+        hist = {}
+        for coll, colldef in CFG_CITESUMMARY_COLLECTIONS:
+            hist[coll] = []
         for low, high, fame in CFG_CITESUMMARY_FAME_THRESHOLDS:
             d_cites = {}
             bins.append(low)
