@@ -4101,17 +4101,16 @@ class Template:
         """
 
         out += """
-        plot1 = $.plot('citesummary_histogram',["""
+        $.plot($("#citesummary_histogram"),["""
 
-        # slick trick to transpose dictionary...
-#        labels,data = zip(*cite_data.iteritems())
         lines = []
         for label, data in cite_data.iteritems():
-            line = "{label:'" + label + "', bars:{show:true},"
+            line = "{label:'" + label + "', bars:{show:true},data:"
             i = 0
             series = []
             for point in data:
                 series.append([i,point])
+                i += 1
             line += "["+','.join(map(str,series)) + "]}"
             lines.append(line)
 
@@ -4125,6 +4124,7 @@ class Template:
         i = 0
         for point in sorted(bins):
             series.append([i,point])
+            i += 1
         out += '[' + ','.join(map(str,series)) + ']' 
         out += """
         },

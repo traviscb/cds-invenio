@@ -771,7 +771,9 @@ def page_start(req, of, cc, aas, ln, uid, title_message=None,
             metaheaderadd = ''
 
         metaheaderadd += """
+          <script src='/js/jquery.min.js' type='text/javascript'></script>
           <script src='/js/flot/jquery.flot.min.js' type='text/javascript'></script>
+
           """
 
 
