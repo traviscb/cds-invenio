@@ -161,6 +161,7 @@ install-jquery-plugins: install-jquery-plugins
 	wget http://bitbucket.org/cleonello/jqplot/downloads/jquery.jqplot.0.9.7r618.tar.gz && \
 	tar vxzf jquery.jqplot.0.9.7r618.tar.gz && \
 	mv dist/jquery.jqplot.min.* . && \
+	mv dist/plugins ./jqplot.plugins && \
 	rm -rf dist && rm jquery.jqplot.0.9.7r618.tar.gz && \
 	wget http://www.uploadify.com/_files/jquery.uploadify-v2.1.0.zip && \
 	unzip jquery.tablesorter.zip && \
