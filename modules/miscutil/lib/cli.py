@@ -86,6 +86,35 @@ def fields(recid, name):
     else:
         return None
 
+
+def add_field(recid, field, subfield):
+    """ Add (append) a field/subfieldto the specified RECID.
+    WARNING - this bypasses the bibupload queue and should only be used if
+    you know the queue is clear.
+    subfield is as in bibRecord record_add_field, a list of tuples
+    [(subfield, value), (subf, value)]
+
+    Returns None if fails to update record, or (err, recid)
+    """
+    from invenio.bibrecord import record_add_field
+    from invenio.bibupload import bibupload
+
+    tmp_rec = get_record(recid)
+    if len(tmp_rec) == 0:
+        print "Failed to find Record:" + recid
+        return None
+    if record_add_field(tmp_rec,field,subfields=subfield) > -1:
+        err = bibupload(tmp_rec,opt_mode="replace")
+        if err[0] == 0:
+            print "updated " + str(err[1])
+            return err
+        else:
+            print "error updating " + str(err[1]) + "  (error:" + err[0] + ")"
+            return err
+    else:
+        print "error in adding field to record, no changes made"
+        return None
+
 if __name__ == "__main__":
     """FIXME: As a command, cli should either run its unit tests, or invoke ipython"""
     pass
