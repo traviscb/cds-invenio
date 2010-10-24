@@ -24,7 +24,7 @@ cli is an Invenio module intended to make working with Invenio interactively
 import invenio
 from invenio.search_engine import perform_request_search
 from invenio.search_engine import get_record, get_fieldvalues
-from invenio.bibrank_citation_searcher import get_citation_dict as pre_get_citation_dict
+from invenio.bibrank_citation_searcher import get_citation_dict
 from invenio.bibformat import format_record
 from invenio.bibformat import format_records
 from invenio.intbitset import intbitset
@@ -33,32 +33,28 @@ from invenio.bibformat_dblayer import get_tags_from_name
 FORWARD_CITATION_DICTIONARY = None
 
 
-def get_citation_dict():
-    global FORWARD_CITATION_DICTIONARY
-    if FORWARD_CITATION_DICTIONARY == None:
-        FORWARD_CITATION_DICTIONARY = pre_get_citation_dict('citationdict')
-    return FORWARD_CITATION_DICTIONARY
-
-def get_cite_counts(query = ''):
+def get_cite_counts(query = None):
     """Generate the recid, citation count pairs for recids with cites >= 1.
 
     If query is given, gives counts for recids in search results.
-    If query is empty, gives counts for all recids (default)
+    If query is empty, gives counts for all recids.
 
     Sample Usage:
     [x for x in cli.get_cite_counts('recid:95')]
     results in:
     [(95, 2)]
     """
-    for recid in perform_request_search(p=query):
-        yield recid, get_cite_count(recid)
-
-def get_cite_count(recid):
-    cites = get_citation_dict()
-    if cites.has_key(recid):
-        return len(cites[recid])
+    global FORWARD_CITATION_DICTIONARY
+    if FORWARD_CITATION_DICTIONARY == None:
+        FORWARD_CITATION_DICTIONARY = get_citation_dict('citationdict')
+    cites = FORWARD_CITATION_DICTIONARY
+    if query != None:
+        recids = perform_request_search(p=query)
+        for recid in recids:
+            yield recid, len(cites[recid])
     else:
-        return 0
+        for recid in cites:
+            yield recid, len(cites[recid])
 
 def irn(recid):
     """Return the first (only) IRN of a given recid, or None"""
@@ -114,6 +110,30 @@ def add_field(recid, field, subfield):
     else:
         print "error in adding field to record, no changes made"
         return None
+
+def write_record(id, mode="a", format="xm", strip_control="False",
+    filename="", file=None):
+    """ print record to file
+    if file and filename given as args, file takes precedence
+    strip_control=True removes all control fields to make it easier to use
+    output (in xm format) to bibupload (only works in xm)
+
+    """
+
+    if (file == None):
+        f = open(filename,mode)
+    else:
+        f = file
+    out = format_record(id,format)
+    if strip_control:
+        tmp = ''
+        for line in out.split("\n"):
+            if not line.startswith("  <controlfield"):
+                tmp += line + " \n"
+    f.write(out)
+    if file == None:
+        f.close()
+    return(1)
 
 if __name__ == "__main__":
     """FIXME: As a command, cli should either run its unit tests, or invoke ipython"""
