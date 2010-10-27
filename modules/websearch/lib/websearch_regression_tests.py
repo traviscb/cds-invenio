@@ -287,6 +287,18 @@ class WebSearchTestRecord(unittest.TestCase):
                                                expected_text='001__'))
         return
 
+    def test_meta_header(self):
+        """ websearch - test that metadata embedded in header of hd
+        relies on hdm format and Default_HTML_meta bft, but hook is in
+        websearch to display the format
+        """
+
+        self.assertEqual([],
+                         test_web_page_content(make_url('/record/1'),
+                                               expected_text='<meta content="ALEPH experiment: Candidate of Higgs boson production" name="citation_title" />'))
+        return
+
+
 class WebSearchTestCollections(unittest.TestCase):
 
     def test_traversal_links(self):
