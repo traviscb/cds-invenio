@@ -135,6 +135,20 @@ def write_record(id, mode="a", format="xm", strip_control="False",
         f.close()
     return(1)
 
+def get_authors(record):
+    '''return the author fields 100/700s in one list from a record
+
+    @param record: a record object from get_record
+    @return a list of author objects like record[100][0]
+    '''
+    authors = []
+    if record.has_key('100'):
+        authors.append(record['100'][0])
+    if record.has_key('700'):
+        authors.extend(record['700'])
+    return(authors)
+
+
 if __name__ == "__main__":
     """FIXME: As a command, cli should either run its unit tests, or invoke ipython"""
     pass
