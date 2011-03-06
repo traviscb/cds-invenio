@@ -89,6 +89,7 @@ from invenio.dbquery import DatabaseError, deserialize_via_marshal, InvenioDbQue
 from invenio.access_control_engine import acc_authorize_action
 from invenio.errorlib import register_exception
 from invenio.textutils import encode_for_xml, wash_for_utf8
+from invenio.htmlutils import nmtoken_from_string
 
 import invenio.template
 webstyle_templates = invenio.template.load('webstyle')
@@ -852,6 +853,18 @@ def page_start(req, of, cc, aas, ln, uid, title_message=None,
             navtrail += ": " + cgi.escape(p)
             title_message = cgi.escape(p) + " - " + title_message
 
+        body_css_classes = []
+        if cc:
+            # we know the collection, lets allow page styles based on cc
+
+            #collection names may not satisfy rules for css classes which
+            #are something like:  -?[_a-zA-Z]+[_a-zA-Z0-9-]*
+            #however it isn't clear what we should do about cases with
+            #numbers, so we leave them to fail.  Everything else becomes "_"
+
+            css = nmtoken_from_string(cc).replace('.','_').replace('-','_').replace(':','_')
+            body_css_classes.append(css)
+
         ## finally, print page header:
         req.write(pageheaderonly(req=req, title=title_message,
                                  navtrail=navtrail,
@@ -862,7 +875,8 @@ def page_start(req, of, cc, aas, ln, uid, title_message=None,
                                  language=ln,
                                  navmenuid='search',
                                  navtrail_append_title_p=0,
-                                 rssurl=rssurl))
+                                 rssurl=rssurl,
+                                 body_css_classes=body_css_classes))
         req.write(websearch_templates.tmpl_search_pagestart(ln=ln))
     #else:
     #    req.send_http_header()
@@ -1015,6 +1029,9 @@ def create_search_box(cc, colls, p, f, rg, sf, so, sp, rm, of, ot, aas,
         show_title = False
 
     if cc == CFG_SITE_NAME:
+        show_title = False
+
+    if CFG_INSPIRE_SITE:
         show_title = False
 
     return websearch_templates.tmpl_search_box(
@@ -3851,9 +3868,9 @@ def print_record(recID, format='hb', ot='', ln=CFG_SITE_LANG, decompress=zlib.de
 
     display_claim_this_paper = False
     try:
-         display_claim_this_paper = user_info["precached_useclaimpaper"]
+        display_claim_this_paper = user_info["precached_useclaimpaper"]
     except (KeyError, TypeError):
-         display_claim_this_paper = False
+        display_claim_this_paper = False
     #check from user information if the user has the right to see hidden fields/tags in the
     #records as well
     can_see_hidden = (acc_authorize_action(user_info, 'runbibedit')[0] == 0)
