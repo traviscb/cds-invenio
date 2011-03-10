@@ -85,7 +85,7 @@ from invenio.config import \
      CFG_WEBSEARCH_WILDCARD_LIMIT
 from invenio.dbquery import Error
 from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
-from invenio.urlutils import redirect_to_url, make_canonical_urlargd, drop_default_urlargd
+from invenio.urlutils import redirect_to_url, make_canonical_urlargd, drop_default_urlargd, create_url
 from invenio.webuser import getUid, page_not_authorized, get_user_preferences, \
     collect_user_info, logoutUser, isUserSuperAdmin
 from invenio.websubmit_webinterface import WebInterfaceFilesPages
@@ -728,7 +728,7 @@ class WebInterfaceRecordRestrictedPages(WebInterfaceDirectory):
 class WebInterfaceSearchResultsPages(WebInterfaceDirectory):
     """ Handling of the /search URL and its sub-pages. """
 
-    _exports = ['', 'authenticate', 'cache', 'log']
+    _exports = ['', 'authenticate', 'cache', 'log', 'simple']
 
     def __call__(self, req, form):
         """ Perform a search. """
@@ -841,6 +841,37 @@ class WebInterfaceSearchResultsPages(WebInterfaceDirectory):
             return str(out)
         else:
             return out
+
+    def simple(self, req, form):
+        """Simplified search handler for field/val pairs and other odd forms"""
+        argd = wash_search_urlargd(form)
+        _ = gettext_set_language(argd['ln'])
+
+        if req.method == 'POST':
+            raise apache.SERVER_RETURN, apache.HTTP_METHOD_NOT_ALLOWED
+
+
+        invenio_searches = []
+        spires_searches = []
+        new_argd = {}
+        for key in form.keys():
+            val = str(form.getfirst(key))
+            if not key in search_results_default_urlargd.keys():
+                if len(val)>0:
+                    invenio_searches.append(key.lower() + ':' + val)
+                    spires_searches.append(key.lower() + ' ' + val)
+            elif key == "as" or key == "aas":
+                new_argd["aas"] = 0
+            elif key == "action_search":
+                new_argd["action"] = "search"
+            else:
+                new_argd[key] = argd[key]
+        new_argd['p'] = ' and '.join(invenio_searches)
+        if CFG_INSPIRE_SITE:
+            new_argd['p'] = 'find ' + ' and '.join(spires_searches)
+
+        url = create_url(CFG_SITE_URL + '/search', new_argd, escape_urlargd=True)
+        return(redirect_to_url(req, url))
 
     def cache(self, req, form):
         """Search cache page."""
