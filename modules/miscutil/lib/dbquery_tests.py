@@ -105,28 +105,32 @@ class WashTableColumnNameTest(unittest.TestCase):
 
 
 class UserAccessTest(unittest.TestCase):
-    """Test that only CFG_BIBSCHED_PROCESS_USER can write to DB, all other unix
-    accounts get the guest DB account, read-only.  Requires su to run test"""
+    """Test that only CFG_BIBSCHED_PROCESS_USER can write to DB
+
+    All other unix accounts get the guest DB account, read-only.
+    Requires su to run test"""
 
     import os, pwd
 
     from invenio.config import CFG_GUEST_DATABASE_USER, CFG_DATABASE_USER, CFG_BIBSCHED_PROCESS_USER
 
     def setUp(self):
-        self._save_uid = os.getuid()
         self._save_euid = os.geteuid()
 
     def tearDown(self):
-        os.setuid(self._save_uid)
         os.seteuid(self._save_euid)
 
-    def _switch_user(self, uid)
-        try:
-            os.seteuid(uid)
-        except OSError:
-            self.fail("Test must be run via sudo/root to suid")
 
-    def _test_account_name(self, expected_name):
+    def _switch_user(self, uid):
+        if os.geteuid == 0:
+            try:
+                os.seteuid(uid)
+            except OSError:
+                self.fail("Cannot switch users - test cannot proceed")
+        else:
+            self.fail("Must run as root to switch users for this test")
+
+    def _test_account_name(self):
         """dbquery - correct user accounts"""
         return dbquery.run_sql("SELECT current_user;").split('@')[0]
 
@@ -135,10 +139,10 @@ class UserAccessTest(unittest.TestCase):
         try:
             dbquery.run_sql("CREATE TABLE IF NOT EXISTS %s (a INT)" %  test_table)
         except:
-            return(0)
+            return(False)
         # drop empty test table
         dbquery.run_sql("DROP TABLE %s" % test_table)
-        return(1)
+        return(True)
 
     def test_unpriv_user(self):
         try:
@@ -149,13 +153,13 @@ class UserAccessTest(unittest.TestCase):
                 if user[0] != CFG_BIBSCHED_PROCESS_USER and user[2] > 0:
                     test_uid = user[2]
         self._switch_user(test_uid)
-        self.assert(self._test_account_name,CFG_GUEST_DATABASE_USER)
+        self.assertEqual(self._test_account_name,CFG_GUEST_DATABASE_USER)
         self.assert(not self._can_create_table)
 
     def test_bibsched_user(self):
         bibsched_uid = pwd.getpwnam(CFG_BIBSCHED_PROCESS_USER)[2]
         self._switch_user(bibsched_uid)
-        self.assert(self._test_account_name,CFG_DATABASE_USER)
+        self.assertEqual(self._test_account_name,CFG_DATABASE_USER)
         self.assert(self._can_create_table)
 
 
@@ -163,7 +167,7 @@ class UserAccessTest(unittest.TestCase):
 
 
 TEST_SUITE = make_test_suite(TableUpdateTimesTest,
-                             WashTableColumnNameTest, User AccessTest)
+                             WashTableColumnNameTest, UserAccessTest)
 
 if __name__ == "__main__":
     run_test_suite(TEST_SUITE)
