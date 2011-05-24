@@ -34,10 +34,10 @@ FORWARD_CITATION_DICTIONARY = None
 
 
 def get_cite_counts(query = None):
-    """Generate the recid, citation count pairs for recids with cites >= 1.
+    """Generate the recid, citation count pairs for a given search
 
     If query is given, gives counts for recids in search results.
-    If query is empty, gives counts for all recids.
+    If query is empty, gives counts for all recids with cites >=1.
 
     Sample Usage:
     [x for x in cli.get_cite_counts('recid:95')]
@@ -51,7 +51,10 @@ def get_cite_counts(query = None):
     if query != None:
         recids = perform_request_search(p=query)
         for recid in recids:
-            yield recid, len(cites[recid])
+            if cites.has_key(recid):
+                yield recid, len(cites[recid])
+            else:
+                yield recid, 0
     else:
         for recid in cites:
             yield recid, len(cites[recid])
